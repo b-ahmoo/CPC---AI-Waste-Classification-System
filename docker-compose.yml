@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app               # Mounts local folder so code changes reload instantly
+    env_file:
+      - .env
+    environment:
+      - FLASK_DEBUG=1
