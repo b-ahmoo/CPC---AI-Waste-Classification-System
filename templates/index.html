@@ -1,18 +1,125 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>{{ title }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waste Classification Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; margin-top: 100px; background-color: #f4f7f6; color: #333; }
-        .card { background: white; padding: 40px; border-radius: 8px; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h1 { color: #2e7d32; }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f7f5;
+            color: #20332b;
+        }
+        header {
+            background: #174c3c;
+            color: white;
+            padding: 24px 6%;
+        }
+        header h1 { margin: 0 0 8px; }
+        header p { margin: 0; color: #d8e9df; }
+        main { padding: 28px 6%; }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 18px;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 22px;
+            box-shadow: 0 3px 12px #173b2b10;
+        }
+        .card h3 { margin-top: 0; color: #617168; font-size: 14px; }
+        .number { font-size: 32px; font-weight: bold; color: #174c3c; }
+        .charts {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+            margin-top: 22px;
+        }
+        .chart-container { height: 280px; }
+        .note { color: #617168; font-size: 13px; margin-top: 22px; }
+        @media (max-width: 700px) {
+            .stats, .charts { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h1>{{ message }}</h1>
-        <p>Subsystem MVP setup is active and ready for development. Yay!!!!!</p>
-    </div>
+    <header>
+        <h1>Statistical Dashboard</h1>
+        <p>AI Waste Classification System · Overview</p>
+    </header>
+
+    <main>
+        <section class="stats">
+            <div class="card">
+                <h3>Total Classifications</h3>
+                <div class="number">0</div>
+            </div>
+            <div class="card">
+                <h3>Waste Categories</h3>
+                <div class="number">0</div>
+            </div>
+            <div class="card">
+                <h3>Classification Accuracy</h3>
+                <div class="number">N/A</div>
+            </div>
+        </section>
+
+        <section class="charts">
+            <div class="card">
+                <h3>Waste by Category</h3>
+                <div class="chart-container"><canvas id="categoryChart"></canvas></div>
+            </div>
+            <div class="card">
+                <h3>Classification Activity</h3>
+                <div class="chart-container"><canvas id="activityChart"></canvas></div>
+            </div>
+        </section>
+
+        <p class="note">
+            Dashboard preview — live statistics will appear once classification data is connected.
+        </p>
+    </main>
+
+    <script>
+        new Chart(document.getElementById('categoryChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['No data yet'],
+                datasets: [{ data: [1], backgroundColor: ['#dce5df'] }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+
+        new Chart(document.getElementById('activityChart'), {
+            type: 'line',
+            data: {
+                labels: ['No data yet'],
+                datasets: [{
+                    label: 'Classifications',
+                    data: [0],
+                    borderColor: '#248365',
+                    backgroundColor: '#248365',
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    </script>
 </body>
 </html>
+
+
