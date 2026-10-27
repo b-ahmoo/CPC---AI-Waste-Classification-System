@@ -58,15 +58,15 @@
         <section class="stats">
             <div class="card">
                 <h3>Total Classifications</h3>
-                <div class="number">0</div>
+                <div class="number" id="total-classifications">0</div>
             </div>
             <div class="card">
                 <h3>Waste Categories</h3>
-                <div class="number">0</div>
+                <div class="number" id="waste-categories">0</div>
             </div>
             <div class="card">
                 <h3>Classification Accuracy</h3>
-                <div class="number">N/A</div>
+                <div class="number" id="classification-accuracy">N/A</div>
             </div>
         </section>
 
@@ -81,44 +81,12 @@
             </div>
         </section>
 
-        <p class="note">
+        <p class="note" id="data-note">
             Dashboard preview — live statistics will appear once classification data is connected.
         </p>
     </main>
 
-    <script>
-        new Chart(document.getElementById('categoryChart'), {
-            type: 'doughnut',
-            data: {
-                labels: ['No data yet'],
-                datasets: [{ data: [1], backgroundColor: ['#dce5df'] }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom' } }
-            }
-        });
-
-        new Chart(document.getElementById('activityChart'), {
-            type: 'line',
-            data: {
-                labels: ['No data yet'],
-                datasets: [{
-                    label: 'Classifications',
-                    data: [0],
-                    borderColor: '#248365',
-                    backgroundColor: '#248365',
-                    tension: 0.3
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: { y: { beginAtZero: true } }
-            }
-        });
-    </script>
+    <script src="/static/dashboard.js"></script>
 </body>
 </html>
 
