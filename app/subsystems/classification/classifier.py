@@ -6,7 +6,6 @@ on its own, without the web interface.
 
 import base64
 import json
-from dataclasses import dataclass, asdict, field
 from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
@@ -35,36 +34,155 @@ class ClassificationError(Exception):
     """Raised when an image cannot be classified (bad file, API failure)."""
 
 
-@dataclass
 class ClassificationResult:
-    item_name: str
-    material: str
-    bin_type: str
-    is_pfand: bool
-    timestamp: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat(timespec="seconds")
-    )
+    """One identified waste item: what it is, what it is made of, and where it goes."""
+
+    def __init__(self, item_name: str, material: str, bin_type: str,
+                 is_pfand: bool = False, timestamp: str = None):
+        # Every attribute is set through its setter, so the checks always run.
+        self.item_name = item_name
+        self.material = material
+        self.bin_type = bin_type
+        self.is_pfand = is_pfand
+        self.timestamp = timestamp or self._current_timestamp()
+
+    # --- Initialization methods ---------------------------------------------
+
+    @staticmethod
+    def _current_timestamp() -> str:
+        """Current time in UTC as ISO 8601 text, e.g. 2026-10-29T10:15:00+00:00."""
+        return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "ClassificationResult":
+        """Build a result from a dictionary, e.g. a row read back from the database."""
+        return cls(data["item_name"], data["material"], data["bin_type"],
+                   data.get("is_pfand", False), data.get("timestamp"))
+
+    # --- Getters and setters ------------------------------------------------
+
+    @property
+    def item_name(self) -> str:
+        return self._item_name
+
+    @item_name.setter
+    def item_name(self, value: str):
+        self._item_name = self._non_empty_text(value, "item_name")
+
+    @property
+    def material(self) -> str:
+        return self._material
+
+    @material.setter
+    def material(self, value: str):
+        self._material = self._non_empty_text(value, "material")
+
+    @property
+    def bin_type(self) -> str:
+        return self._bin_type
+
+    @bin_type.setter
+    def bin_type(self, value: str):
+        self._bin_type = self._non_empty_text(value, "bin_type")
+
+    @property
+    def is_pfand(self) -> bool:
+        return self._is_pfand
+
+    @is_pfand.setter
+    def is_pfand(self, value: bool):
+        self._is_pfand = bool(value)
+
+    @property
+    def timestamp(self) -> str:
+        return self._timestamp
+
+    @timestamp.setter
+    def timestamp(self, value: str):
+        self._timestamp = self._non_empty_text(value, "timestamp")
+
+    # --- Other methods ------------------------------------------------------
+
+    @staticmethod
+    def _non_empty_text(value, name: str) -> str:
+        text = str(value).strip() if value is not None else ""
+        if not text:
+            raise ValueError(f"{name} must not be empty.")
+        return text
 
     def to_dict(self) -> dict:
-        return asdict(self)
+        """Plain dictionary, used for saving to the database and showing on the page."""
+        return {
+            "item_name": self.item_name,
+            "material": self.material,
+            "bin_type": self.bin_type,
+            "is_pfand": self.is_pfand,
+            "timestamp": self.timestamp,
+        }
+
+    def __repr__(self) -> str:
+        return (f"ClassificationResult(item_name={self.item_name!r}, material={self.material!r}, "
+                f"bin_type={self.bin_type!r}, is_pfand={self.is_pfand})")
 
 
 class BinMapper:
     """Maps a material to a German bin using the rules in rules.json."""
 
+    REQUIRED_KEYS = ("material_to_bin", "pfand", "unknown_label")
+
     def __init__(self, rules_path: str = "rules.json"):
-        self.rules_path = rules_path
-        self.rules = self.load_rules()
+        self._rules = {}
+        self.rules_path = rules_path  # the setter loads the rules from this file
+
+    # --- Initialization methods ---------------------------------------------
 
     def load_rules(self) -> dict:
-        path = Path(self.rules_path)
+        """Read rules.json, check it has every required section, and keep it."""
+        path = Path(self._rules_path)
         if not path.is_absolute():
             path = Path(__file__).parent / path
         with open(path, encoding="utf-8") as f:
-            return json.load(f)
+            rules = json.load(f)
+        self.rules = rules  # goes through the setter, which validates
+        return self._rules
+
+    # --- Getters and setters ------------------------------------------------
+
+    @property
+    def rules_path(self) -> str:
+        return self._rules_path
+
+    @rules_path.setter
+    def rules_path(self, value: str):
+        """Changing the rules file loads the new rules straight away."""
+        self._rules_path = ClassificationResult._non_empty_text(value, "rules_path")
+        self.load_rules()
+
+    @property
+    def rules(self) -> dict:
+        return self._rules
+
+    @rules.setter
+    def rules(self, value: dict):
+        if not isinstance(value, dict):
+            raise ValueError("rules must be a dictionary.")
+        missing = [key for key in self.REQUIRED_KEYS if key not in value]
+        if missing:
+            raise ValueError(f"rules are missing: {', '.join(missing)}")
+        self._rules = value
+
+    @property
+    def unknown_label(self) -> str:
+        return self._rules["unknown_label"]
+
+    @property
+    def pfand_bin(self) -> str:
+        return self._rules["pfand"]["bin"]
+
+    # --- Other methods ------------------------------------------------------
 
     def map_to_bin(self, material: str) -> str:
-        return self.rules["material_to_bin"].get(material, self.rules["unknown_label"])
+        return self._rules["material_to_bin"].get(material, self.unknown_label)
 
     def is_pfand(self, item) -> bool:
         """Decide Pfand from what the AI saw, using the rules in rules.json.
@@ -76,7 +194,7 @@ class BinMapper:
         """
         if isinstance(item, str):
             item = {"item_name": item}
-        pfand_rules = self.rules["pfand"]
+        pfand_rules = self._rules["pfand"]
 
         if pfand_rules["logo_visible_means_pfand"] and item.get("pfand_logo_visible") is True:
             return True
@@ -91,21 +209,96 @@ class WasteClassifier:
     and turns the answer into results.
 
     The API client can be passed in from outside (dependency injection), so
-    tests and the demo mode can use a fake client instead of calling OpenAI.
+    tests and the demo mode can use a fake client instead of calling the API.
     """
 
     def __init__(self, api_key=None, client=None, bin_mapper=None,
                  prompt_template=DEFAULT_PROMPT, timeout=10, model="gpt-4o-mini",
                  base_url=None):
-        self.api_key = api_key
-        self.prompt_template = prompt_template
+        self._api_key = api_key
+        self._base_url = base_url
         self.timeout = timeout
         self.model = model
+        self.prompt_template = prompt_template
         self.bin_mapper = bin_mapper or BinMapper()
-        if client is None:
-            from openai import OpenAI  # imported here so tests don't need a key
-            client = OpenAI(api_key=api_key, base_url=base_url, timeout=timeout)
-        self.client = client
+        self._client_injected = client is not None
+        self._client = client if client is not None else self._create_client()
+
+    # --- Initialization methods ---------------------------------------------
+
+    def _create_client(self):
+        """Set up the connection to the API from the key, address and timeout."""
+        from openai import OpenAI  # imported here so tests don't need the package configured
+        return OpenAI(api_key=self._api_key, base_url=self._base_url, timeout=self._timeout)
+
+    def _refresh_client(self):
+        """Rebuild the API connection after a setting changed (not for injected clients)."""
+        if not self._client_injected:
+            self._client = self._create_client()
+
+    # --- Getters and setters ------------------------------------------------
+
+    @property
+    def api_key(self):
+        return self._api_key
+
+    @api_key.setter
+    def api_key(self, value):
+        self._api_key = value
+        self._refresh_client()
+
+    @property
+    def base_url(self):
+        return self._base_url
+
+    @base_url.setter
+    def base_url(self, value):
+        self._base_url = value
+        self._refresh_client()
+
+    @property
+    def timeout(self) -> float:
+        return self._timeout
+
+    @timeout.setter
+    def timeout(self, value: float):
+        if not isinstance(value, (int, float)) or value <= 0:
+            raise ValueError("timeout must be a positive number of seconds.")
+        self._timeout = value
+        if hasattr(self, "_client"):
+            self._refresh_client()
+
+    @property
+    def model(self) -> str:
+        return self._model
+
+    @model.setter
+    def model(self, value: str):
+        self._model = ClassificationResult._non_empty_text(value, "model")
+
+    @property
+    def prompt_template(self) -> str:
+        return self._prompt_template
+
+    @prompt_template.setter
+    def prompt_template(self, value: str):
+        self._prompt_template = ClassificationResult._non_empty_text(value, "prompt_template")
+
+    @property
+    def bin_mapper(self) -> BinMapper:
+        return self._bin_mapper
+
+    @bin_mapper.setter
+    def bin_mapper(self, value: BinMapper):
+        if not isinstance(value, BinMapper):
+            raise ValueError("bin_mapper must be a BinMapper.")
+        self._bin_mapper = value
+
+    @property
+    def client(self):
+        return self._client
+
+    # --- Other methods ------------------------------------------------------
 
     def classify_image(self, image_bytes: bytes) -> list:
         mime_type = self._validate(image_bytes)
@@ -159,14 +352,14 @@ class WasteClassifier:
         return text.strip()
 
     def _parse_response(self, raw: dict) -> list:
-        unknown = self.bin_mapper.rules["unknown_label"]
+        unknown = self.bin_mapper.unknown_label
         results = []
         for item in raw.get("items", []):
             name = str(item.get("item_name") or unknown)
             material = str(item.get("material") or unknown)
             pfand = self.bin_mapper.is_pfand(item)
             if pfand:
-                bin_type = self.bin_mapper.rules["pfand"]["bin"]
+                bin_type = self.bin_mapper.pfand_bin
             else:
                 bin_type = self.bin_mapper.map_to_bin(material)
             results.append(ClassificationResult(name, material, bin_type, pfand))
