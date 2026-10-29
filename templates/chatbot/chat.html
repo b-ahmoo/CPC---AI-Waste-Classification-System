@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Recycling Chatbot</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .chat-container { width: 100%; max-width: 600px; background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; flex-direction: column; height: 80vh; overflow: hidden; }
+        .chat-header { background: #2e7d32; color: white; padding: 15px; text-align: center; font-weight: bold; }
+        .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .message { padding: 10px 15px; border-radius: 15px; max-width: 75%; line-height: 1.4; }
+        .user-message { background: #e3f2fd; align-self: flex-end; color: #0d47a1; }
+        .bot-message { background: #e8f5e9; align-self: flex-start; color: #1b5e20; }
+        .chat-input-area { display: flex; padding: 15px; background: #fff; border-top: 1px solid #ddd; }
+        .chat-input-area input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; outline: none; }
+        .chat-input-area button { background: #2e7d32; color: white; border: none; padding: 10px 20px; margin-left: 10px; border-radius: 4px; cursor: pointer; }
+        .chat-input-area button:hover { background: #1b5e20; }
+    </style>
+</head>
+<body>
+
+    <div class="chat-container">
+        <div class="chat-header">AI Waste Sorting & Recycling Assistant</div>
+        
+        <div id="chatMessages" class="chat-messages">
+            <div class="message bot-message">Hello! Ask me any recycling question or how to sort a specific waste item.</div>
+        </div>
+
+        <div class="chat-input-area">
+            <input type="text" id="userInput" placeholder="Type your recycling question here..." autocomplete="off">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('userInput').addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') {
+        sendMessage();
+    }
+});
+
+async function sendMessage() {
+    const inputField = document.getElementById('userInput');
+    const messageText = inputField.value.trim();
+    if (!messageText) return;
+
+    const chatMessages = document.getElementById('chatMessages');
+
+    // 1. Append user message to chat UI
+    const userDiv = document.createElement('div');
+    userDiv.className = 'message user-message';
+    userDiv.textContent = messageText;
+    chatMessages.appendChild(userDiv);
+
+    inputField.value = '';
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    try {
+        // 2. Send message to Flask backend endpoint
+        const response = await fetch('/chat/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: messageText })
+        });
+
+        const data = await response.json();
+
+        // 3. Append bot response to chat UI
+        const botDiv = document.createElement('div');
+        botDiv.className = 'message bot-message';
+        botDiv.textContent = data.response;
+        chatMessages.appendChild(botDiv);
+        
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    } catch (error) {
+        console.error('Error communicating with chatbot backend:', error);
+    }
+}
+    </script>
+</body>
+</html>
