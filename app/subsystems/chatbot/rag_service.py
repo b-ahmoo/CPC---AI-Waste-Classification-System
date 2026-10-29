@@ -7,7 +7,7 @@ client = OpenAI(
     api_key=os.environ.get("AZURE_OPENAI_API_KEY")
 )
 
-DEPLOYMENT_NAME = os.environ.get("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-5-mini")
+DEPLOYMENT_NAME = os.environ.get("AZURE_OPENAI_DEPLOYMENT_NAME")
 
 def fetch_local_waste_rules(country_name: str) -> str:
     knowledge_base = {
