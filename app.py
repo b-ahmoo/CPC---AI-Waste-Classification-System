@@ -1,6 +1,8 @@
 from flask import Flask, render_template
+from app.subsystems.dashboard.routes import dashboard_bp
 
 app = Flask(__name__)
+app.register_blueprint(dashboard_bp)
 
 @app.route("/")
 def home():
