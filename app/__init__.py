@@ -11,9 +11,10 @@ def create_app(config_class=Config):
 
     # Register Blueprints for each Subsystem
     from app.subsystems.chatbot.routes import chatbot_bp
+    from app.subsystems.dashboard.routes import dashboard_bp
 
     app.register_blueprint(chatbot_bp, url_prefix='/chat')
-    # app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
+    app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
 
     with app.app_context():
       from app import models  
