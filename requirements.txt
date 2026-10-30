@@ -4,5 +4,7 @@ openai>=1.68.0
 httpx>=0.28.0
 pydantic>=2.0
 Flask-SQLAlchemy==3.1.1
+python-dotenv>=1.0
+pytest>=8.0
 PyMySQL==1.1.1
 cryptography>=42.0.0
