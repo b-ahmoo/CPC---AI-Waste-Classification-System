@@ -6,7 +6,7 @@
 
 from flask import Blueprint, jsonify, render_template
 
-from .dashboard_service import DashboardService
+from app.models.dashboard import DashboardService
 
 dashboard_bp = Blueprint("dashboard", __name__, url_prefix="/dashboard")
 

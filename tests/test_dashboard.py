@@ -6,7 +6,7 @@ Run from the project root:  python -m unittest tests.test_dashboard
 import unittest
 from datetime import datetime
 
-from app.subsystems.dashboard import (
+from app.models.dashboard import (
     ClassificationRecord, MockDataGenerator, StatisticsAnalyzer, DashboardService,
 )
 

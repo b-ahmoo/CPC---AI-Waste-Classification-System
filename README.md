@@ -80,7 +80,7 @@ This project is divided into four modular subsystems:
 
 The Statistical Dashboard subsystem receives classification results, calculates statistics, and shows them on a web dashboard: summary cards, a waste-by-category chart, and an activity-over-time chart.
 
-Code: `app/subsystems/dashboard/` · Page: `templates/dashboard/dashboard.html` · URL: http://localhost:8000/dashboard/
+Classes: `app/models/dashboard/` · Routes: `app/subsystems/dashboard/routes.py` · Page: `templates/dashboard/dashboard.html` · URL: http://localhost:8000/dashboard/
 
 | Class | Responsibility |
 |---|---|
