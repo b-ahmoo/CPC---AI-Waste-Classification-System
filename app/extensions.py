@@ -1,3 +1,3 @@
-"""Shared extensions. Placeholder until the database (SQLAlchemy) is set up."""
+from flask_sqlalchemy import SQLAlchemy
 
-db = None
+db = SQLAlchemy()
