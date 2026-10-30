@@ -55,6 +55,8 @@ To stop the application, press `Ctrl + C` in your terminal, or run:
 docker compose down
 ```
 
+### 5. Access the Database
+Open your web browser and navigate to: [http://localhost:8080](http://localhost:8080)
 ---
 
 ## Development Workflow & Subsystems

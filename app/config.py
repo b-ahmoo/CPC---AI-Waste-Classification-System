@@ -7,6 +7,7 @@ load_dotenv()  # reads .env when running without Docker (Docker passes it via en
 
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key")
+<<<<<<< HEAD
     OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
     TEMPLATES_AUTO_RELOAD = True
 
@@ -14,3 +15,10 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL") or "sqlite:///waste_assistant.db"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     MAX_CONTENT_LENGTH = 11 * 1024 * 1024  # uploads above ~10 MB are rejected
+=======
+    TEMPLATES_AUTO_RELOAD = True
+    SQLALCHEMY_DATABASE_URI = os.environ.get(
+        "DATABASE_URL"
+    )
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+>>>>>>> origin/main

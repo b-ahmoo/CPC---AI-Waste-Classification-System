@@ -1,7 +1,32 @@
 from flask import Blueprint, render_template, request, jsonify, session
 from app.subsystems.chatbot.rag_service import get_chatbot_response
+from app.extensions import db
+from app.models.dummy import DummyItem
 
 chatbot_bp = Blueprint('chatbot_bp', __name__)
+
+@chatbot_bp.route('/test-dummy', methods=['GET'])
+def test_create_dummy():
+    try:
+        # 1. Instantiate the dummy entity object
+        item = DummyItem(name="Test Recyclable", description="Checking if MySQL is saving data.")
+        
+        # 2. Add to the database session and commit
+        db.session.add(item)
+        db.session.commit()
+
+        # 3. Query all items back to verify
+        all_items = DummyItem.query.all()
+        item_names = [i.name for i in all_items]
+
+        return jsonify({
+            "status": "success",
+            "message": "Dummy entity created and saved to MySQL successfully!",
+            "saved_items_in_db": item_names
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 @chatbot_bp.route('/')
 def chat_home():
