@@ -7,7 +7,7 @@ import pytest
 from app import create_app
 from app.config import Config
 from app.subsystems.classification import routes
-from app.subsystems.classification.models import Scan, find_by_hash, save_results
+from app.models.scan import Scan, find_by_hash, save_results
 
 FAKE_PNG = b"\x89PNG\r\n\x1a\n" + b"0" * 100
 

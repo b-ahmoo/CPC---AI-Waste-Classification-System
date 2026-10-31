@@ -8,7 +8,7 @@ from flask import Blueprint, render_template, request, session
 
 from app.subsystems.classification.classifier import (
     ClassificationError, FakeClient, WasteClassifier)
-from app.subsystems.classification.models import find_by_hash, recent_scans, save_results
+from app.models.scan import find_by_hash, recent_scans, save_results
 
 classification_bp = Blueprint("classification", __name__)
 

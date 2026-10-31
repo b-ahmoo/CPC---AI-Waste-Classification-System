@@ -2,7 +2,6 @@
 
 from app.extensions import db
 
-
 class Scan(db.Model):
     __tablename__ = "scans"
 
@@ -24,7 +23,6 @@ class Scan(db.Model):
             "is_pfand": self.is_pfand,
         }
 
-
 def save_results(results, image_hash, user_id=None):
     """Insert one row per identified item."""
     for r in results:
@@ -39,7 +37,6 @@ def save_results(results, image_hash, user_id=None):
         ))
     db.session.commit()
 
-
 def find_by_hash(image_hash):
     """Return earlier results for the same image, so the API isn't called twice."""
     latest = (Scan.query.filter_by(image_hash=image_hash)
@@ -48,7 +45,6 @@ def find_by_hash(image_hash):
         return []
     rows = Scan.query.filter_by(image_hash=image_hash, timestamp=latest.timestamp).all()
     return [row.to_dict() for row in rows]
-
 
 def recent_scans(limit=10):
     return [row.to_dict() for row in Scan.query.order_by(Scan.id.desc()).limit(limit).all()]

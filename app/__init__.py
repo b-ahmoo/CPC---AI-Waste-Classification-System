@@ -23,7 +23,7 @@ def create_app(config_class=Config):
     # Create database tables that don't exist yet
     with app.app_context():
         from app import models  # noqa: F401  (registers the dummy_items table)
-        from app.subsystems.classification import models as classification_models  # noqa: F401  (registers the scans table)
+        
         db.create_all()
 
     @app.route('/')
