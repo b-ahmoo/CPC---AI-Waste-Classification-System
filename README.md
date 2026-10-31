@@ -78,93 +78,95 @@ This project is divided into four modular subsystems:
 
 ## Statistical Dashboard (Hiranmayai Nemani)
 
-The Statistical Dashboard subsystem receives classification results, calculates statistics, and shows them on a web dashboard: summary cards, a waste-by-category chart, and an activity-over-time chart.
+The Statistical Dashboard reads the classification results stored by the classification subsystem (the `scans` table), calculates statistics, and shows them on a web dashboard: summary cards (items classified, Pfand items, materials detected), an items-by-bin chart, and an activity-over-time chart. Each refresh is stored in the database as a snapshot.
 
-Classes: `app/models/dashboard/` · Routes: `app/subsystems/dashboard/routes.py` · Page: `templates/dashboard/dashboard.html` · URL: http://localhost:8000/dashboard/
+Models: `app/models/dashboard.py` · Logic: `app/subsystems/dashboard/services.py` · Routes: `app/subsystems/dashboard/routes.py` · Page: `templates/dashboard/dashboard.html` · URL: http://localhost:8000/dashboard/
 
-| Class | Responsibility |
+| Class (table) | Responsibility |
 |---|---|
-| `ClassificationRecord` | One classification result: predicted category, actual category, confidence, timestamp. Validates its data in the setters. |
-| `MockDataGenerator` | Creates realistic mock records while the classifier is still in development. Configurable count, time range, accuracy, and random seed. |
-| `StatisticsAnalyzer` | Calculates total classifications, category distribution, accuracy, average confidence, and daily activity. |
-| `DashboardService` | Chooses the data source (mock or live), uses the analyzer, and returns the data in the format the dashboard needs. |
+| `DashboardSetting` (`dashboard_settings`) | Where the dashboard gets its data: mock data or live scans, and how many days back. |
+| `DashboardSnapshot` (`dashboard_snapshots`) | The statistics at one point in time: total items, Pfand items, number of materials. Built from scans with `from_scans()`. |
+| `BinStatistic` (`bin_statistics`) | Items per bin type (e.g. Gelbe Tonne) in a snapshot, for the doughnut chart. |
+| `DailyActivity` (`daily_activity`) | Items per day in a snapshot, for the line chart. |
 
-Every class has a constructor (`__init__`), initialization methods (`from_dict`, `initialize_random`, `configure`, `load_records`, `initialize`), and getters/setters for its private attributes.
+All four are SQLAlchemy models (`db.Model` with `db.Column`), so `db.create_all()` creates their tables. Each has a constructor (`__init__`), initialization methods (`get_or_create`, `from_scans`, `add_bin_statistic`, `add_daily_activity`), and getters/setters that validate values before they are saved. A snapshot owns its `BinStatistic` and `DailyActivity` rows (one-to-many, deleted together).
 
-`routes.py` connects the subsystem to the web app: `/dashboard/` shows the page and `/dashboard/api/stats` returns the statistics as JSON.
+Until the classifier has produced real scans, the dashboard uses mock scans generated with the classification subsystem's own bin rules (`rules.json`). Switch to live data with `POST /dashboard/api/settings` and `{"use_mock_data": false}`.
 
 ```mermaid
 classDiagram
     direction LR
-    class ClassificationRecord {
-        -int _record_id
-        -str _predicted_category
-        -str _actual_category
-        -float _confidence
-        -datetime _timestamp
-        +#95;#95;init#95;#95;(record_id, predicted_category, confidence, timestamp, actual_category)
-        +from_dict(data)$ ClassificationRecord
+    class Scan {
+        <<classification subsystem>>
+        +id: int
+        +timestamp: str
+        +item_name: str
+        +material: str
+        +bin_type: str
+        +is_pfand: bool
+    }
+    class DashboardSetting {
+        <<db.Model: dashboard_settings>>
+        +id: int
+        -_use_mock_data: bool
+        -_time_range_days: int
+        -_updated_at: datetime
+        +#95;#95;init#95;#95;(use_mock_data, time_range_days)
+        +get_or_create()$ DashboardSetting
         +to_dict() dict
-        +has_ground_truth() bool
-        +is_correct() bool
-        +get_predicted_category() / set_predicted_category()
-        +get_actual_category() / set_actual_category()
-        +get_confidence() / set_confidence()
-        +get_timestamp() / set_timestamp()
-        +get_record_id() / set_record_id()
-    }
-    class MockDataGenerator {
-        -list _categories
-        -list _weights
-        -int _record_count
-        -int _days
-        -float _accuracy
-        -Random _rng
-        +#95;#95;init#95;#95;(categories, weights, record_count, days, accuracy, seed)
-        +initialize_random(seed)
-        +configure(record_count, days, accuracy)
-        +generate() list~ClassificationRecord~
-        +get_categories() / set_categories()
-        +get_record_count() / set_record_count()
-        +get_days() / set_days()
-        +get_accuracy() / set_accuracy()
-    }
-    class StatisticsAnalyzer {
-        -list _records
-        -list _categories
-        +#95;#95;init#95;#95;(records, categories)
-        +load_records(records)
-        +add_record(record)
-        +total_classifications() int
-        +category_distribution() dict
-        +category_count() int
-        +accuracy() float
-        +average_confidence() float
-        +daily_activity() dict
-        +summary() dict
-        +get_records() / set_records()
-        +get_categories() / set_categories()
-    }
-    class DashboardService {
-        -bool _use_mock_data
-        -list _categories
-        -callable _record_provider
-        -MockDataGenerator _generator
-        -StatisticsAnalyzer _analyzer
-        +#95;#95;init#95;#95;(use_mock_data, categories, record_provider)
-        +initialize(seed)
-        +refresh()
-        +get_dashboard_data() dict
         +get_use_mock_data() / set_use_mock_data()
-        +get_categories() / set_categories()
-        +get_record_provider() / set_record_provider()
+        +get_time_range_days() / set_time_range_days()
+        +get_updated_at() datetime
     }
-    DashboardService *-- MockDataGenerator : uses in mock mode
-    DashboardService *-- StatisticsAnalyzer : uses
-    MockDataGenerator ..> ClassificationRecord : creates
-    StatisticsAnalyzer o-- ClassificationRecord : analyses
+    class DashboardSnapshot {
+        <<db.Model: dashboard_snapshots>>
+        +id: int
+        -_created_at: datetime
+        -_source: str
+        -_total_items: int
+        -_pfand_items: int
+        -_material_count: int
+        +#95;#95;init#95;#95;(source, total_items, pfand_items, material_count)
+        +from_scans(scans, source)$ DashboardSnapshot
+        +add_bin_statistic(statistic)
+        +add_daily_activity(activity)
+        +pfand_share() float
+        +to_dict() dict
+        +get_source() / set_source()
+        +get_total_items() / set_total_items()
+        +get_pfand_items() / set_pfand_items()
+        +get_material_count() / set_material_count()
+        +get_created_at() datetime
+    }
+    class BinStatistic {
+        <<db.Model: bin_statistics>>
+        +id: int
+        +snapshot_id: int FK
+        -_bin_type: str
+        -_item_count: int
+        +#95;#95;init#95;#95;(bin_type, item_count)
+        +share_of(total_items) float
+        +get_bin_type() / set_bin_type()
+        +get_item_count() / set_item_count()
+        +get_snapshot() DashboardSnapshot
+    }
+    class DailyActivity {
+        <<db.Model: daily_activity>>
+        +id: int
+        +snapshot_id: int FK
+        -_activity_date: date
+        -_item_count: int
+        +#95;#95;init#95;#95;(activity_date, item_count)
+        +get_activity_date() / set_activity_date()
+        +get_item_count() / set_item_count()
+        +get_snapshot() DashboardSnapshot
+    }
+    DashboardSnapshot "1" *-- "*" BinStatistic : has
+    DashboardSnapshot "1" *-- "*" DailyActivity : has
+    DashboardSnapshot ..> Scan : calculated from
+    DashboardSnapshot ..> DashboardSetting : built using
 ```
 
 ![Statistical Dashboard class diagram](docs/uml/dashboard.png)
 
-Run the tests: `python -m unittest tests.test_dashboard`
+Run the tests: `docker compose exec web pytest app/subsystems/dashboard/tests`

@@ -56,23 +56,23 @@
     <main>
         <section class="stats">
             <div class="card">
-                <h3>Total Classifications</h3>
-                <div class="number" id="total-classifications">0</div>
+                <h3>Items Classified</h3>
+                <div class="number" id="total-items">0</div>
             </div>
             <div class="card">
-                <h3>Waste Categories</h3>
-                <div class="number" id="waste-categories">0</div>
+                <h3>Pfand Items</h3>
+                <div class="number" id="pfand-items">0</div>
             </div>
             <div class="card">
-                <h3>Classification Accuracy</h3>
-                <div class="number" id="classification-accuracy">N/A</div>
+                <h3>Materials Detected</h3>
+                <div class="number" id="material-count">0</div>
             </div>
         </section>
 
         <section class="charts">
             <div class="card">
-                <h3>Waste by Category</h3>
-                <div class="chart-container"><canvas id="categoryChart"></canvas></div>
+                <h3>Items by Bin</h3>
+                <div class="chart-container"><canvas id="binChart"></canvas></div>
             </div>
             <div class="card">
                 <h3>Classification Activity</h3>
@@ -87,18 +87,24 @@
         // All statistics are calculated in Python (DashboardService)
         // and fetched here as JSON. This page only draws them.
         const STATS_URL = "{{ url_for('dashboard.api_stats') }}";
-        const COLORS = ["#174c3c", "#248365", "#5fae8c", "#a3cfb8", "#c9a227", "#8a9a91"];
+        // Colours of the real German bins; anything else gets a neutral green-grey
+        const BIN_COLORS = {
+            "Gelbe Tonne": "#e3b505", "Papiertonne": "#2f6db5", "Altglas": "#3f8f5a",
+            "Biotonne": "#8a5a2b", "Restmüll": "#4a4a4a", "Sondermüll": "#c0392b",
+            "Pfandautomat": "#17a2a2"
+        };
+        const binColor = (label) => BIN_COLORS[label] || "#8a9a91";
 
         function setText(id, value) {
             document.getElementById(id).textContent = value;
         }
 
-        function drawCategoryChart(chart) {
-            new Chart(document.getElementById("categoryChart"), {
+        function drawBinChart(chart) {
+            new Chart(document.getElementById("binChart"), {
                 type: "doughnut",
                 data: {
                     labels: chart.labels,
-                    datasets: [{ data: chart.values, backgroundColor: COLORS }]
+                    datasets: [{ data: chart.values, backgroundColor: chart.labels.map(binColor) }]
                 },
                 options: {
                     responsive: true,
@@ -136,15 +142,15 @@
                 if (!response.ok) throw new Error("HTTP " + response.status);
                 const data = await response.json();
 
-                setText("total-classifications", data.cards.total_classifications.toLocaleString());
-                setText("waste-categories", data.cards.waste_categories);
-                setText("classification-accuracy",
-                    data.cards.accuracy === null ? "N/A" : data.cards.accuracy + "%");
-                drawCategoryChart(data.category_chart);
+                setText("total-items", data.cards.total_items.toLocaleString());
+                setText("pfand-items", data.cards.pfand_share === null
+                    ? "0" : data.cards.pfand_items + " (" + data.cards.pfand_share + "%)");
+                setText("material-count", data.cards.material_count);
+                drawBinChart(data.bin_chart);
                 drawActivityChart(data.activity_chart);
                 setText("data-note", data.source === "mock"
-                    ? "Showing mock data. Live statistics will appear once classification data is connected."
-                    : "Showing live classification data.");
+                    ? "Showing mock data. Switch to live scans with POST /dashboard/api/settings {\"use_mock_data\": false}."
+                    : "Showing live data from the scans table.");
             } catch (error) {
                 console.error("Failed to load dashboard data:", error);
                 setText("data-note", "Could not load classification data.");
