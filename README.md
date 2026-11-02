@@ -9,13 +9,15 @@ This document outlines the Minimum Viable Product (MVP) features and database re
 ---
 # Team members and assigned subsystems
 
-Ah-Moo Bhavisha (7226049) - Educational Chatbot
-Srivaishnavi Jakku (7225998) - Statistical Dashboard
-Swarbhanu Bandyopadhaya (7226982) - Classification System
-Sejal Dolas ( 7226366 ) - User Management
+* Ah-Moo Bhavisha (7226049) - Educational Chatbot
+* Srivaishnavi Jakku (7225998) - Statistical Dashboard
+* Swarbhanu Bandyopadhaya (7226982) - Classification System
+* Sejal Dolas ( 7226366 ) - User Management
 
-## Link to video presentation can be found below. Access only with an FH-Dortmund account.
+## Link to video presentation for HomeTaskAssignment001 can be found below. Access only with an FH-Dortmund account.
 https://fhdoprod-my.sharepoint.com/:v:/g/personal/bhavisha_ah-moo001_stud_fh-dortmund_de/IQBIXyuMsSihTLkcpW2DtQS7AaTGcqT9h8J7gA8K9ogRa9I?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJPbmVEcml2ZUZvckJ1c2luZXNzIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXciLCJyZWZlcnJhbFZpZXciOiJNeUZpbGVzTGlua0NvcHkifX0&e=ws5Ejz
+
+All cod implementation of classes can be found under the branch hometaskassignment001 in this github repository, under app/models
 
 # Class Diagrams
 ## 1. User Management Subsystem
