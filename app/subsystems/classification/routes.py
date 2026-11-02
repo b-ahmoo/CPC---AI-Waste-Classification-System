@@ -9,11 +9,13 @@ from flask import Blueprint, render_template, request, session
 from app.subsystems.classification.classifier import (
     ClassificationError, FakeClient, WasteClassifier)
 from app.models.scan import find_by_hash, recent_scans, save_results
+from app.subsystems.classification.errors import ClassificationErrorHandler
 
 classification_bp = Blueprint("classification", __name__)
 
 _classifier = None
 _demo_mode = False
+_error_handler = ClassificationErrorHandler()
 
 
 def _setting(*names, default=None):
@@ -58,21 +60,26 @@ def classify():
             image_bytes = file.read()
             image_hash = hashlib.sha256(image_bytes).hexdigest()
 
-            results = find_by_hash(image_hash)
-            if results:
-                from_cache = True
-            else:
-                try:
-                    results = [r.to_dict() for r in classifier.classify_image(image_bytes)]
-                except ClassificationError as e:
-                    error, results = str(e), None
+            try:
+                results = find_by_hash(image_hash)
+                if results:
+                    from_cache = True
                 else:
+                    results = [r.to_dict() for r in classifier.classify_image(image_bytes)]
                     if not demo_mode:  # don't store sample data
                         save_results(results, image_hash, user_id=session.get("user_id"))
+            except Exception as e:  # bad image, API failure, database down, ...
+                error, results = _error_handler.handle(e), None
 
             if results:
                 mime = "image/png" if image_bytes.startswith(b"\x89PNG") else "image/jpeg"
                 image_url = f"data:{mime};base64,{base64.b64encode(image_bytes).decode()}"
+
+    try:
+        recent = recent_scans()
+    except Exception as e:  # the page still loads if the database is down
+        _error_handler.handle(e)
+        recent = []
 
     return render_template(
         "classification/index.html",
@@ -81,5 +88,5 @@ def classify():
         from_cache=from_cache,
         image_url=image_url,
         demo_mode=demo_mode,
-        recent=recent_scans(),
+        recent=recent,
     )
