@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Identify &amp; Classify</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; }
+        main { max-width: 760px; margin: 0 auto; padding: 32px 16px 48px; }
+        h1 { color: #2e7d32; margin: 0 0 4px; }
+        .subtitle { color: #666; margin: 0 0 24px; }
+        .card { background: white; padding: 20px 24px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 16px; }
+        .banner { padding: 12px 16px; border-radius: 6px; margin-bottom: 16px; }
+        .banner.demo { background: #e8f0fe; color: #1a4fa0; }
+        .banner.error { background: #fdecea; color: #a61b1b; }
+        .banner.info { background: #f0f0f0; color: #555; }
+        form { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+        button { background: #2e7d32; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-size: 15px; cursor: pointer; }
+        button:hover { background: #256528; }
+        #status { color: #2e7d32; font-weight: 600; }
+        .preview { max-width: 280px; max-height: 280px; border-radius: 8px; display: block; margin-bottom: 16px; }
+        .result h2 { margin: 0 0 8px; font-size: 20px; }
+        .result p { margin: 4px 0; }
+        .pfand { background: #e6f4ea; color: #1e6b2e; padding: 10px 14px; border-radius: 6px; margin-top: 10px; }
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th, td { text-align: left; padding: 8px; border-bottom: 1px solid #e5e5e5; }
+        th { color: #666; font-weight: 600; }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Identify &amp; Classify</h1>
+    <p class="subtitle">Upload a photo of your waste to find the correct bin.</p>
+
+    {% if demo_mode %}
+    <div class="banner demo">Demo mode: no API key is set, so results are sample data, not real AI output.</div>
+    {% endif %}
+
+    <div class="card">
+        <form method="post" enctype="multipart/form-data">
+            <label for="image">Image (JPEG or PNG, max 10 MB):</label>
+            <input type="file" id="image" name="image" accept="image/jpeg,image/png" required
+                   onchange="if (this.files.length) { document.getElementById('status').hidden = false; this.form.submit(); }">
+            <span id="status" hidden>Classifying...</span>
+            <noscript><button type="submit">Classify</button></noscript>
+        </form>
+    </div>
+
+    {% if error %}
+    <div class="banner error">{{ error }}</div>
+    {% endif %}
+
+    {% if results %}
+        {% if image_url %}<img class="preview" src="{{ image_url }}" alt="Uploaded image">{% endif %}
+        {% if from_cache %}
+        <div class="banner info">This image was previously uploaded and classified.</div>
+        {% endif %}
+        {% for r in results %}
+        <div class="card result">
+            <h2>{{ r.item_name }}</h2>
+            <p>Material: <strong>{{ r.material }}</strong></p>
+            <p>Bin: <strong>{{ r.bin_type }}</strong></p>
+            {% if r.is_pfand %}
+            <div class="pfand">Pfand item: return it to a Pfandautomat for your deposit.</div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="card">
+        <h2 style="margin-top:0">Recent scans</h2>
+        {% if recent %}
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Time (UTC)</th><th>Item</th><th>Material</th><th>Bin</th><th>Pfand</th></tr></thead>
+                <tbody>
+                {% for s in recent %}
+                <tr>
+                    <td>{{ s.timestamp }}</td>
+                    <td>{{ s.item_name }}</td>
+                    <td>{{ s.material }}</td>
+                    <td>{{ s.bin_type }}</td>
+                    <td>{{ "Yes" if s.is_pfand else "No" }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="color:#666">No scans yet.</p>
+        {% endif %}
+    </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,32 @@
+{
+  "country": "Germany",
+  "material_to_bin": {
+    "Kunststoff": "Gelbe Tonne",
+    "Metall": "Gelbe Tonne",
+    "Verbundstoff": "Gelbe Tonne",
+    "Papier": "Papiertonne",
+    "Pappe": "Papiertonne",
+    "Glas": "Altglas",
+    "Bio": "Biotonne",
+    "Batterie": "Sondermüll",
+    "Elektro": "Sondermüll",
+    "Schadstoff": "Sondermüll",
+    "Rest": "Restmüll"
+  },
+  "pfand": {
+    "bin": "Pfandautomat",
+    "logo_visible_means_pfand": true,
+    "beverage_containers": ["can", "plastic_bottle"],
+    "keywords": [
+      "pet bottle",
+      "drink can",
+      "beverage can",
+      "soda can",
+      "beer can",
+      "beer bottle",
+      "pfandflasche",
+      "pfanddose"
+    ]
+  },
+  "unknown_label": "nicht erkannt"
+}

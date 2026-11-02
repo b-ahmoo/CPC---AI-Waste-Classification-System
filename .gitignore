@@ -35,3 +35,6 @@ ENV/
 # OS Generated Files
 .DS_Store
 Thumbs.db
+# Local database files
+instance/
+*.db
