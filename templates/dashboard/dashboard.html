@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waste Classification Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f7f5;
+            color: #20332b;
+        }
+        header {
+            background: #174c3c;
+            color: white;
+            padding: 24px 6%;
+        }
+        header h1 { margin: 0 0 8px; }
+        header p { margin: 0; color: #d8e9df; }
+        main { padding: 28px 6%; }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 18px;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 22px;
+            box-shadow: 0 3px 12px #173b2b10;
+        }
+        .card h3 { margin-top: 0; color: #617168; font-size: 14px; }
+        .number { font-size: 32px; font-weight: bold; color: #174c3c; }
+        .charts {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+            margin-top: 22px;
+        }
+        .chart-container { height: 280px; }
+        .note { color: #617168; font-size: 13px; margin-top: 22px; }
+        @media (max-width: 700px) {
+            .stats, .charts { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Statistical Dashboard</h1>
+        <p>AI Waste Classification System · Overview</p>
+    </header>
+
+    <main>
+        <section class="stats">
+            <div class="card">
+                <h3>Items Classified</h3>
+                <div class="number" id="total-items">0</div>
+            </div>
+            <div class="card">
+                <h3>Pfand Items</h3>
+                <div class="number" id="pfand-items">0</div>
+            </div>
+            <div class="card">
+                <h3>Materials Detected</h3>
+                <div class="number" id="material-count">0</div>
+            </div>
+        </section>
+
+        <section class="charts">
+            <div class="card">
+                <h3>Items by Bin</h3>
+                <div class="chart-container"><canvas id="binChart"></canvas></div>
+            </div>
+            <div class="card">
+                <h3>Classification Activity</h3>
+                <div class="chart-container"><canvas id="activityChart"></canvas></div>
+            </div>
+        </section>
+
+        <p class="note" id="data-note">Loading statistics…</p>
+    </main>
+
+    <script>
+        // All statistics are calculated in Python (DashboardService)
+        // and fetched here as JSON. This page only draws them.
+        const STATS_URL = "{{ url_for('dashboard.api_stats') }}";
+        // Colours of the real German bins; anything else gets a neutral green-grey
+        const BIN_COLORS = {
+            "Gelbe Tonne": "#e3b505", "Papiertonne": "#2f6db5", "Altglas": "#3f8f5a",
+            "Biotonne": "#8a5a2b", "Restmüll": "#4a4a4a", "Sondermüll": "#c0392b",
+            "Pfandautomat": "#17a2a2"
+        };
+        const binColor = (label) => BIN_COLORS[label] || "#8a9a91";
+
+        function setText(id, value) {
+            document.getElementById(id).textContent = value;
+        }
+
+        function drawBinChart(chart) {
+            new Chart(document.getElementById("binChart"), {
+                type: "doughnut",
+                data: {
+                    labels: chart.labels,
+                    datasets: [{ data: chart.values, backgroundColor: chart.labels.map(binColor) }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: "bottom" } }
+                }
+            });
+        }
+
+        function drawActivityChart(chart) {
+            new Chart(document.getElementById("activityChart"), {
+                type: "line",
+                data: {
+                    labels: chart.labels,
+                    datasets: [{
+                        label: "Classifications per day",
+                        data: chart.values,
+                        borderColor: "#248365",
+                        backgroundColor: "rgba(36,131,101,0.15)",
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+                }
+            });
+        }
+
+        async function loadDashboard() {
+            try {
+                const response = await fetch(STATS_URL);
+                if (!response.ok) throw new Error("HTTP " + response.status);
+                const data = await response.json();
+
+                setText("total-items", data.cards.total_items.toLocaleString());
+                setText("pfand-items", data.cards.pfand_share === null
+                    ? "0" : data.cards.pfand_items + " (" + data.cards.pfand_share + "%)");
+                setText("material-count", data.cards.material_count);
+                drawBinChart(data.bin_chart);
+                drawActivityChart(data.activity_chart);
+                setText("data-note", data.source === "mock"
+                    ? "Showing mock data. Switch to live scans with POST /dashboard/api/settings {\"use_mock_data\": false}."
+                    : "Showing live data from the scans table.");
+            } catch (error) {
+                console.error("Failed to load dashboard data:", error);
+                setText("data-note", "Could not load classification data.");
+            }
+        }
+
+        loadDashboard();
+    </script>
+</body>
+</html>
