@@ -5,7 +5,7 @@ OOP Implementation for Home Assignment 1
 
 from typing import List, Optional
 from flask import Blueprint, render_template
-
+from app.models.usermanagement_models import Country, User
 # Create a Flask Blueprint for Subsystem 1 routes
 user_bp = Blueprint('usermanagement', __name__, template_folder='templates')
 
