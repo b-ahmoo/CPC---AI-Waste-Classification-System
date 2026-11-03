@@ -225,7 +225,7 @@ This project is divided into four modular subsystems:
 * **Branch naming convention:** `feature/<subsystem>/<feature>` (e.g., `feature/educational/chatbot`).
 * Once your task is complete and tested, push your branch and create a Merge Request (MR) on GitLab for review.
 
-## Statistical Dashboard (Hiranmayai Nemani)
+## Statistical Dashboard (Srivaishnavi Jakku)
 
 The Statistical Dashboard reads the classification results stored by the classification subsystem (the `scans` table), calculates statistics, and shows them on a web dashboard: summary cards (items classified, Pfand items, materials detected), an items-by-bin chart, and an activity-over-time chart. Each refresh is stored in the database as a snapshot.
 
