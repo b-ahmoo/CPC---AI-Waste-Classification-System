@@ -11,6 +11,12 @@ class WasteRule(db.Model):
     bin = db.Column(db.String(50), nullable=False)
     instruction = db.Column(db.Text, nullable=False)
 
+    def __init__(self, country: str, material_type: str, bin: str, instruction: str):
+        self.country = country
+        self.material_type = material_type
+        self.bin = bin
+        self.instruction = instruction
+
     # Encapsulation (Getters and Setters)
     def get_rule_id(self):
         return self.rule_id

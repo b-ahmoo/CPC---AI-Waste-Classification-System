@@ -11,6 +11,13 @@ class ChatMessage(db.Model):
     time_sent = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     message = db.Column(db.Text, nullable=False)
 
+    def __init__(self, session_id: int, sender: str, message: str, time_sent=None):
+        self.session_id = session_id
+        self.sender = sender
+        self.message = message
+        if time_sent:
+            self.time_sent = time_sent
+
     # Encapsulation (Getters and Setters)
     def get_message_id(self):
         return self.message_id
