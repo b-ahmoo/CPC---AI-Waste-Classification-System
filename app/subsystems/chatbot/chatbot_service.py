@@ -1,7 +1,9 @@
 import os
 from openai import OpenAI
 from app.models import WasteRule, ChatMessage
+from app.models.scan import Scan
 from app.extensions import db
+from sqlalchemy import func
 
 class ChatbotService:
     #  Constructor and State Initialization
@@ -16,52 +18,58 @@ class ChatbotService:
         )
         self.deployment_name = os.environ.get("AZURE_OPENAI_DEPLOYMENT_NAME")
 
-    # 2. Encapsulation (Getter)
+    # (Getter)
     def get_message(self):
         return self.message
 
-    # 3. find rule from database
-    def find_rule(self, user_country: str, user_material: str) -> str:
-        """Replaces the old fetch_local_waste_rules() dictionary with a DB query."""
+    #  find rules from database for specific country
+    def find_rule(self, user_country: str) -> str:
+       
         rule = WasteRule.query.filter_by(
-            country=user_country, 
-            material_type=user_material
+            country=user_country
+            
         ).first()
         
         if rule:
-            return rule.get_instruction()
+            #return all the bins and rules for that country
+            return f"Bin: {rule.get_bin()}. Instructions: {rule.get_instruction()}"
         return "Follow standard municipal sorting guidelines."
 
-    def send_reply(self, user_country: str, user_material: str, conversation_history: list = None) -> str:
+
+    # assemble payload and send rule + prompt to open ai api to receive a response to display back to user
+    def send_reply(self, user_country: str, user_material: str, user_id: int, conversation_history: list = None) -> str:
         """Replaces get_chatbot_response(), integrating DB rules and OpenAI."""
         if conversation_history is None:
             conversation_history = []
 
-        # 1. Fetch the rule dynamically from the database
-        local_rules = self.find_rule(user_country, user_material)
+        #  Fetch the rule dynamically from the database
+        local_rules = self.find_rule(user_country)
+        # also fetch user stats, if any
+        user_stats = self.get_user_stats(user_id)
 
-        # 2. Build the system prompt
+        # Build the system prompt
         system_prompt = {
             "role": "system",
             "content": (
                 f"You are an AI Waste Sorting Assistant. "
-                f"Answer the user strictly using these recycling rules for {user_country}: {local_rules} "
+                f"Answer the user strictly using these recycling rules for {user_country} regarding {user_material} and other knowledge you may find regarding the following rules: {local_rules} "
                 f"If a question is outside the scope of waste management, politely redirect the user back to recycling topics."
+                f"If a question is about stats, strictly use user's personal scans data : {user_stats}."
             )
         }
 
-        # 3. Assemble payload
+        # Assemble payload
         messages_payload = [system_prompt] + conversation_history + [{"role": "user", "content": self.message}]
 
         try:
-            # 4. Call Azure OpenAI
+            #  Call Azure OpenAI
             response = self.client.responses.create(
                 model=self.deployment_name,
                 input=messages_payload,
             )
             ai_reply_text = response.output_text
             
-            # 5. Save the AI's reply to the database
+            # Save the AI's reply to the database
             ai_message = ChatMessage(
                 session_id=self.session_id, 
                 sender="assistant", 
@@ -74,3 +82,29 @@ class ChatbotService:
             
         except Exception as e:
             return f"Error connecting to Azure OpenAI: {str(e)}"
+
+
+    # for a specific user, filter Scans table to find and count all material types scanned
+    # connected with subsystem 2 - classification
+    def get_user_stats(self, user_id: int)->str:
+        scan_counts = Scan.query.with_entities(
+            Scan.material,
+            func.count(Scan.id)
+            ).filter_by(user_id=user_id).group_by(Scan.material).all()
+        
+        if not scan_counts:
+            return "You have not scanned any items yet."
+
+        stats_dict = {bin_name: count for bin_name, count in scan_counts}
+
+        formatted_stats = "Your scan history is: "
+        for bin_name, count in stats_dict.items():
+            formatted_stats += f"{count} items in the {bin_name}, "
+            
+        return formatted_stats.strip(", ")
+
+        
+        
+
+        
+            
