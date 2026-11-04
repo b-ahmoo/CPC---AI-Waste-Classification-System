@@ -10,9 +10,16 @@ class ChatSession(db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     active = db.Column(db.Boolean, default=True)
+    
 
     # Relationship link to messages
+    #backref = true automatically generates an attribute session in ChatMessage
+    # lazy = true prevents app from immediately loading all chat sessions, waits for query instead
     messages = db.relationship('ChatMessage', backref='session', lazy=True)
+
+    def __init__(self, user_id=None, active=True):
+        self.user_id = user_id
+        self.active = active
 
     # Encapsulation (Getters and Setters)
     def get_session_id(self):
