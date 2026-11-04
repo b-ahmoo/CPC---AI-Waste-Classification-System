@@ -1,6 +1,5 @@
 from flask import Blueprint, render_template, request, jsonify, session
 from sqlalchemy import func
-from app.subsystems.chatbot.rag_service import get_chatbot_response
 from app.extensions import db
 from app.models.dummy import DummyItem
 from app.models.chat_message import ChatMessage
