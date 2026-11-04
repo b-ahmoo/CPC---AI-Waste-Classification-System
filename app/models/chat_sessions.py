@@ -17,7 +17,9 @@ class ChatSession(db.Model):
     # lazy = true prevents app from immediately loading all chat sessions, waits for query instead
     messages = db.relationship('ChatMessage', backref='session', lazy=True)
 
-    def __init__(self, user_id=None, active=True):
+    def __init__(self,session_id=None, user_id=None, active=True):
+        if session_id:
+            self.session_id = session_id
         self.user_id = user_id
         self.active = active
 

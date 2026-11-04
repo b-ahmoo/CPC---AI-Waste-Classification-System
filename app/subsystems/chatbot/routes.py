@@ -37,6 +37,7 @@ def ask_chatbot():
 
     try:
         session = ChatSession.query.get(session_id)
+        print(f"session = {session}")
         if not session:
             # If the session doesn't exist, create it and save it to the DB
             new_session = ChatSession(session_id=session_id)
