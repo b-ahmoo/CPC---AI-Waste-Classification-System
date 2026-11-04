@@ -1,0 +1,71 @@
+classDiagram
+    direction LR
+    class Scan {
+        <<classification subsystem>>
+        +id: int
+        +timestamp: str
+        +item_name: str
+        +material: str
+        +bin_type: str
+        +is_pfand: bool
+    }
+    class DashboardSetting {
+        <<db.Model: dashboard_settings>>
+        +id: int
+        -_use_mock_data: bool
+        -_time_range_days: int
+        -_updated_at: datetime
+        +#95;#95;init#95;#95;(use_mock_data, time_range_days)
+        +get_or_create()$ DashboardSetting
+        +to_dict() dict
+        +get_use_mock_data() / set_use_mock_data()
+        +get_time_range_days() / set_time_range_days()
+        +get_updated_at() datetime
+    }
+    class DashboardSnapshot {
+        <<db.Model: dashboard_snapshots>>
+        +id: int
+        -_created_at: datetime
+        -_source: str
+        -_total_items: int
+        -_pfand_items: int
+        -_material_count: int
+        +#95;#95;init#95;#95;(source, total_items, pfand_items, material_count)
+        +from_scans(scans, source)$ DashboardSnapshot
+        +add_bin_statistic(statistic)
+        +add_daily_activity(activity)
+        +pfand_share() float
+        +to_dict() dict
+        +get_source() / set_source()
+        +get_total_items() / set_total_items()
+        +get_pfand_items() / set_pfand_items()
+        +get_material_count() / set_material_count()
+        +get_created_at() datetime
+    }
+    class BinStatistic {
+        <<db.Model: bin_statistics>>
+        +id: int
+        +snapshot_id: int FK
+        -_bin_type: str
+        -_item_count: int
+        +#95;#95;init#95;#95;(bin_type, item_count)
+        +share_of(total_items) float
+        +get_bin_type() / set_bin_type()
+        +get_item_count() / set_item_count()
+        +get_snapshot() DashboardSnapshot
+    }
+    class DailyActivity {
+        <<db.Model: daily_activity>>
+        +id: int
+        +snapshot_id: int FK
+        -_activity_date: date
+        -_item_count: int
+        +#95;#95;init#95;#95;(activity_date, item_count)
+        +get_activity_date() / set_activity_date()
+        +get_item_count() / set_item_count()
+        +get_snapshot() DashboardSnapshot
+    }
+    DashboardSnapshot "1" *-- "*" BinStatistic : has
+    DashboardSnapshot "1" *-- "*" DailyActivity : has
+    DashboardSnapshot ..> Scan : calculated from
+    DashboardSnapshot ..> DashboardSetting : built using
