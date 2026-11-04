@@ -24,20 +24,29 @@ class ChatbotService:
 
     #  find rules from database for specific country
     def find_rule(self, user_country: str) -> str:
-       
-        rule = WasteRule.query.filter_by(
-            country=user_country
-            
-        ).first()
-        
-        if rule:
-            #return all the bins and rules for that country
-            return f"Bin: {rule.get_bin()}. Instructions: {rule.get_instruction()}"
-        return "Follow standard municipal sorting guidelines."
+
+        try:
+            rules = WasteRule.query.filter_by(
+                country=user_country
+            ).all()
+
+            if not rules:
+                return "Follow standard municipal sorting guidelines."
+
+            combined_rules = ""
+            for r in rules:
+                combined_rules += f"Bin: {r.get_bin()}. Instructions: {r.get_instruction()} | "
+            return combined_rules
+
+        except Exception as e:
+            print(f"Database error while fetching rule : {e}")
+            return f"Follow standard municipal sorting guidelines."
+
+        return f"Follow standard municipal sorting guidelines for {user_country}."
 
 
     # assemble payload and send rule + prompt to open ai api to receive a response to display back to user
-    def send_reply(self, user_country: str, user_material: str, user_id: int, conversation_history: list = None) -> str:
+    def send_reply(self, user_country: str, user_id: int, conversation_history: list = None) -> str:
         """Replaces get_chatbot_response(), integrating DB rules and OpenAI."""
         if conversation_history is None:
             conversation_history = []
@@ -52,7 +61,7 @@ class ChatbotService:
             "role": "system",
             "content": (
                 f"You are an AI Waste Sorting Assistant. "
-                f"Answer the user strictly using these recycling rules for {user_country} regarding {user_material} and other knowledge you may find regarding the following rules: {local_rules} "
+                f"Answer the user strictly using these recycling rules for {user_country} and other knowledge you may find regarding the following rules: {local_rules} "
                 f"If a question is outside the scope of waste management, politely redirect the user back to recycling topics."
                 f"If a question is about stats, strictly use user's personal scans data : {user_stats}."
             )
@@ -87,21 +96,25 @@ class ChatbotService:
     # for a specific user, filter Scans table to find and count all material types scanned
     # connected with subsystem 2 - classification
     def get_user_stats(self, user_id: int)->str:
-        scan_counts = Scan.query.with_entities(
-            Scan.material,
-            func.count(Scan.id)
-            ).filter_by(user_id=user_id).group_by(Scan.material).all()
-        
-        if not scan_counts:
-            return "You have not scanned any items yet."
 
-        stats_dict = {bin_name: count for bin_name, count in scan_counts}
-
-        formatted_stats = "Your scan history is: "
-        for bin_name, count in stats_dict.items():
-            formatted_stats += f"{count} items in the {bin_name}, "
+        try:
+            scan_counts = Scan.query.with_entities(
+                Scan.material,
+                func.count(Scan.id)
+                ).filter_by(user_id=user_id).group_by(Scan.material).all()
             
-        return formatted_stats.strip(", ")
+            if not scan_counts:
+                return "You have not scanned any items yet."
+
+            stats_dict = {bin_name: count for bin_name, count in scan_counts}
+
+            formatted_stats = "Your scan history is: "
+            for bin_name, count in stats_dict.items():
+                formatted_stats += f"{count} items in the {bin_name}, "
+                
+            return formatted_stats.strip(", ")
+        except Exception as e:
+            return f"Error finding user scans : {e}"
 
         
         
