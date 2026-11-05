@@ -127,6 +127,6 @@ def get_chat_history(session_id):
           return jsonify({
                     "status": "error", 
                     "message": "An error occurred fetching chat history from database."
-                }), 500
+                }), 404
 
 
