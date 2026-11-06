@@ -1,0 +1,83 @@
+classDiagram
+    direction TB
+    class StreamProcessor {
+        <<abstract>>
+        +process(event)* SortingEvent
+        +name: str
+        +#95;#95;add#95;#95;(other) ProcessingPipeline
+    }
+    class EventFilter {
+        <<abstract>>
+        +passed: int
+        +dropped: int
+        +accepts(event)* bool
+        +process(event) SortingEvent
+    }
+    class EventTransformer {
+        <<abstract>>
+        +transform(event)* SortingEvent
+        +process(event) SortingEvent
+    }
+    class ConfidenceFilter {
+        +min_confidence: float
+        +accepts(event) bool
+    }
+    class BoundingBoxFilter {
+        +min_area: int
+        +accepts(event) bool
+    }
+    class MaterialCategoryTransformer {
+        +TAG_TO_CATEGORY: dict
+        +transform(event) SortingEvent
+    }
+    class RoutingCodeTransformer {
+        +LANES: dict
+        +size_class(area) str
+        +transform(event) SortingEvent
+    }
+    class DashboardAggregator {
+        +total: int
+        +by_category: Counter
+        +by_lane: Counter
+        +by_belt: Counter
+        +process(event) SortingEvent
+        +snapshot() dict
+        +reset()
+    }
+    class ProcessingPipeline {
+        +stages: list
+        +add_stage(stage)
+        +process(event) SortingEvent
+        +stream(events) generator
+        +#95;#95;add#95;#95;(other) ProcessingPipeline
+        +#95;#95;len#95;#95;() int
+        +#95;#95;iter#95;#95;() iterator
+    }
+    class SortingEvent {
+        +event_id: int
+        +belt_id: str
+        +visual_tags: list
+        +confidence: float
+        +bounding_box: tuple
+        +timestamp: datetime
+        +material_category: str
+        +routing_code: str
+        +area: int
+    }
+    class SorterEventStream {
+        +count: int
+        +belts: list
+        +#95;#95;iter#95;#95;() SorterEventStream
+        +#95;#95;next#95;#95;() SortingEvent
+    }
+    StreamProcessor <|-- EventFilter
+    StreamProcessor <|-- EventTransformer
+    StreamProcessor <|-- DashboardAggregator
+    StreamProcessor <|-- ProcessingPipeline
+    EventFilter <|-- ConfidenceFilter
+    EventFilter <|-- BoundingBoxFilter
+    EventTransformer <|-- MaterialCategoryTransformer
+    EventTransformer <|-- RoutingCodeTransformer
+    ProcessingPipeline o-- "*" StreamProcessor : stages
+    SorterEventStream ..> SortingEvent : produces
+    StreamProcessor ..> SortingEvent : processes
