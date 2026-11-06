@@ -3,7 +3,7 @@ Subsystem 1 Implementation: Account Service, Authentication, and Integration
 """
 
 from typing import List, Optional
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, request, redirect, url_for, flash
 from app.models.usermanagement_models import Country, User
 from app.subsystems.exceptions import UserNotFoundError, DuplicateEmailError, InactiveUserError
 
@@ -82,7 +82,7 @@ class WasteIntegration:
 # Initialize Account Service and sample seed data for the web route
 account_service = AccountService()
 default_country = Country(country_id="c1", name="Germany", code="DE")
-account_service.create_account(user_id="u1", username="Sejal", email="sejal@uni.edu", country=default_country)
+account_service.create_account(user_id="u1", username="Max", email="max@uni.edu", country=default_country)
 
 
 @user_bp.route('/user/profile/<user_id>')
@@ -94,5 +94,3 @@ def user_profile(user_id):
         
     integration_data = WasteIntegration.get_user_waste_regulations(user)
     return render_template('user_profile.html', user=user.to_dict(), rules=integration_data)
-
-  
