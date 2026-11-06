@@ -42,6 +42,10 @@
         }
         .chart-container { height: 280px; }
         .note { color: #617168; font-size: 13px; margin-top: 22px; }
+        nav { margin-top: 14px; }
+        nav a { color: #d8e9df; margin-right: 18px; text-decoration: none; font-weight: bold; }
+        nav a.active, nav a:hover { color: white; text-decoration: underline; }
+        footer { padding: 0 6% 28px; color: #617168; font-size: 13px; }
         @media (max-width: 700px) {
             .stats, .charts { grid-template-columns: 1fr; }
         }
@@ -51,6 +55,10 @@
     <header>
         <h1>Statistical Dashboard</h1>
         <p>AI Waste Classification System · Overview</p>
+        <nav>
+            <a href="{{ url_for('dashboard.dashboard_page') }}" class="active">Overview</a>
+            <a href="{{ url_for('dashboard.data_page') }}">Data</a>
+        </nav>
     </header>
 
     <main>
@@ -82,6 +90,8 @@
 
         <p class="note" id="data-note">Loading statistics…</p>
     </main>
+
+    <footer>{{ student.subsystem }} · {{ student.name }} ({{ student.student_id }})</footer>
 
     <script>
         // All statistics are calculated in Python (DashboardService)

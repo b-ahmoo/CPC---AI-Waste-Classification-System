@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Data</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: Arial, sans-serif; background: #f4f7f5; color: #20332b; }
+        header { background: #174c3c; color: white; padding: 24px 6%; }
+        header h1 { margin: 0 0 8px; }
+        header p { margin: 0; color: #d8e9df; }
+        nav { margin-top: 14px; }
+        nav a { color: #d8e9df; margin-right: 18px; text-decoration: none; font-weight: bold; }
+        nav a.active, nav a:hover { color: white; text-decoration: underline; }
+        main { padding: 28px 6%; }
+        .card { background: white; border-radius: 12px; padding: 22px; box-shadow: 0 3px 12px #173b2b10; margin-bottom: 22px; }
+        .card h2 { margin: 0 0 6px; font-size: 18px; }
+        .muted { color: #617168; font-size: 13px; margin: 0 0 14px; }
+        form.filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-bottom: 16px; }
+        label { font-size: 13px; color: #617168; display: flex; flex-direction: column; gap: 4px; }
+        select, button { font: inherit; padding: 7px 10px; border-radius: 8px; border: 1px solid #c9d6cf; background: white; }
+        button { background: #174c3c; color: white; border-color: #174c3c; cursor: pointer; }
+        button.secondary { background: white; color: #174c3c; }
+        .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid #e3ebe6; white-space: nowrap; }
+        th { color: #617168; font-weight: bold; font-size: 13px; }
+        .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #e6efe9; font-size: 12px; }
+        .flash { background: #e6efe9; border-radius: 8px; padding: 10px 14px; margin-bottom: 18px; }
+        .empty { color: #617168; padding: 14px 0; }
+        footer { padding: 0 6% 28px; color: #617168; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Dashboard Data</h1>
+        <p>AI Waste Classification System · Data read live from the MySQL database</p>
+        <nav>
+            <a href="{{ url_for('dashboard.dashboard_page') }}">Overview</a>
+            <a href="{{ url_for('dashboard.data_page') }}" class="active">Data</a>
+        </nav>
+    </header>
+
+    <main>
+        {% for message in get_flashed_messages() %}
+            <div class="flash">{{ message }}</div>
+        {% endfor %}
+
+        <section class="card">
+            <h2>Classified items (scans table)</h2>
+            <p class="muted">Showing {{ scans|length }} of {{ total_scans }} rows, newest first (max. 100).</p>
+
+            <form class="filters" method="get" action="{{ url_for('dashboard.data_page') }}">
+                <label>Material
+                    <select name="material">
+                        <option value="">All</option>
+                        {% for m in materials %}
+                            <option value="{{ m }}" {% if selected.material == m %}selected{% endif %}>{{ m }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>Bin
+                    <select name="bin_type">
+                        <option value="">All</option>
+                        {% for b in bins %}
+                            <option value="{{ b }}" {% if selected.bin_type == b %}selected{% endif %}>{{ b }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>Period
+                    <select name="days">
+                        <option value="">All time</option>
+                        {% for d in [1, 7, 14, 30] %}
+                            <option value="{{ d }}" {% if selected.days == d %}selected{% endif %}>Last {{ d }} day{{ 's' if d > 1 }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <button type="submit">Filter</button>
+            </form>
+
+            {% if scans %}
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr><th>ID</th><th>Time (UTC)</th><th>Item</th><th>Material</th><th>Bin</th><th>Pfand</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for s in scans %}
+                        <tr>
+                            <td>{{ s.id }}</td>
+                            <td>{{ s.timestamp[:16]|replace('T', ' ') }}</td>
+                            <td>{{ s.item_name }}</td>
+                            <td>{{ s.material }}</td>
+                            <td><span class="pill">{{ s.bin_type }}</span></td>
+                            <td>{{ 'Yes' if s.is_pfand else 'No' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+                <p class="empty">No scans match. Classify an item, or add sample data below.</p>
+            {% endif %}
+        </section>
+
+        <section class="card">
+            <h2>Saved dashboard snapshots (dashboard_snapshots table)</h2>
+            <p class="muted">Each visit to the Overview page stores one snapshot. Latest 10 shown.</p>
+            {% if snapshots %}
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr><th>ID</th><th>Created (UTC)</th><th>Source</th><th>Items</th><th>Pfand</th><th>Materials</th><th>Top bin</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for snap in snapshots %}
+                        {% set top = snap.bin_statistics[0] if snap.bin_statistics else None %}
+                        <tr>
+                            <td>{{ snap.id }}</td>
+                            <td>{{ snap.get_created_at().strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td><span class="pill">{{ snap.get_source() }}</span></td>
+                            <td>{{ snap.get_total_items() }}</td>
+                            <td>{{ snap.get_pfand_items() }}</td>
+                            <td>{{ snap.get_material_count() }}</td>
+                            <td>{{ top.get_bin_type() ~ ' (' ~ top.get_item_count() ~ ')' if top else '–' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+                <p class="empty">No snapshots yet. Open the Overview page once to create one.</p>
+            {% endif %}
+        </section>
+
+        <section class="card">
+            <h2>Sample data</h2>
+            <p class="muted">Adds 60 example scans to the scans table (marked so they can be removed again). Real scans are never removed.</p>
+            <div class="actions">
+                <form method="post" action="{{ url_for('dashboard.add_sample') }}">
+                    <button type="submit">Add sample scans</button>
+                </form>
+                <form method="post" action="{{ url_for('dashboard.clear_sample') }}">
+                    <button type="submit" class="secondary">Remove sample scans</button>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <footer>{{ student.subsystem }} · {{ student.name }} ({{ student.student_id }})</footer>
+</body>
+</html>

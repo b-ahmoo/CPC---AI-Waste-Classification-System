@@ -78,3 +78,52 @@ def build_snapshot(save=True):
         db.session.add(snapshot)
         db.session.commit()
     return snapshot
+
+
+# --- Data output (Home Assignment 3): reading and filtering MySQL rows ---------
+
+SAMPLE_HASH = "dashboard-sample-data"  # marks sample rows so they can be removed again
+
+
+def query_scans(material=None, bin_type=None, days=None, limit=100):
+    """Rows from the scans table, newest first, filtered by the selected fields."""
+    query = Scan.query
+    if material:
+        query = query.filter(Scan.material == material)
+    if bin_type:
+        query = query.filter(Scan.bin_type == bin_type)
+    if days:
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat(timespec="seconds")
+        query = query.filter(Scan.timestamp >= cutoff)  # ISO timestamps sort as text
+    return query.order_by(Scan.timestamp.desc()).limit(limit).all()
+
+
+def count_scans():
+    return Scan.query.count()
+
+
+def filter_options():
+    """The distinct materials and bins in the scans table, for the filter dropdowns."""
+    materials = [row[0] for row in db.session.query(Scan.material).distinct().order_by(Scan.material)]
+    bins = [row[0] for row in db.session.query(Scan.bin_type).distinct().order_by(Scan.bin_type)]
+    return materials, bins
+
+
+def recent_snapshots(limit=10):
+    """The latest saved dashboard snapshots, newest first."""
+    return DashboardSnapshot.query.order_by(DashboardSnapshot.id.desc()).limit(limit).all()
+
+
+def add_sample_scans(count=60, seed=None):
+    """Insert sample rows into the scans table so the data page has something to show."""
+    for scan in generate_mock_scans(count=count, days=14, seed=seed):
+        db.session.add(Scan(user_id=None, image_hash=SAMPLE_HASH, **scan))
+    db.session.commit()
+    return count
+
+
+def remove_sample_scans():
+    """Delete only the rows added by add_sample_scans(); real scans are untouched."""
+    removed = Scan.query.filter_by(image_hash=SAMPLE_HASH).delete()
+    db.session.commit()
+    return removed
