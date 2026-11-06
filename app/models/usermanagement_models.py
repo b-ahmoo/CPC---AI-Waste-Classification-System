@@ -1,20 +1,21 @@
+
+
+         """
+Subsystem 1: SQLAlchemy Models (Country & User)
 """
-Subsystem 1: Data Models (Country & User)
-"""
 
-from typing import Optional
+from app.extensions import db
 
 
-class Country:
-    """Represents geographical location metadata for a user."""
-    
-    def __init__(self, country_id: str, name: str, code: str):
-        self.country_id = country_id
-        self.name = name
-        self.code = code
+class Country(db.Model):
+    """Represents geographical location metadata table for a user."""
+    __tablename__ = 'countries'
+
+    country_id = db.Column(db.String(50), primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    code = db.Column(db.String(10), nullable=False)
 
     def get_details(self) -> dict:
-        """Returns country metadata as a dictionary."""
         return {
             "country_id": self.country_id,
             "name": self.name,
@@ -22,33 +23,33 @@ class Country:
         }
 
 
-class User:
-    """Represents a system user and their location profile."""
-    
-    def __init__(self, user_id: str, username: str, email: str, country: Country):
-        self.user_id = user_id
-        self.username = username
-        self.email = email
-        self.country = country
-        self.is_active = True
+class User(db.Model):
+    """Represents the system users table."""
+    __tablename__ = 'users'
 
-    def update_profile(self, username: Optional[str] = None, country: Optional[Country] = None) -> None:
-        """Updates user details."""
+    user_id = db.Column(db.String(50), primary_key=True)
+    username = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    country_id = db.Column(db.String(50), db.ForeignKey('countries.country_id'), nullable=False)
+    is_active = db.Column(db.Boolean, default=True)
+
+    # Relationship to Country
+    country = db.relationship('Country', backref=db.backref('users', lazy=True))
+
+    def update_profile(self, username=None, country_id=None):
         if username:
             self.username = username
-        if country:
-            self.country = country
+        if country_id:
+            self.country_id = country_id
 
-    def deactivate_account(self) -> None:
-        """Deactivates user account."""
+    def deactivate_account(self):
         self.is_active = False
 
     def to_dict(self) -> dict:
-        """Serializes user data for integration with other subsystems."""
         return {
             "user_id": self.user_id,
             "username": self.username,
             "email": self.email,
-            "country": self.country.get_details(),
+            "country": self.country.get_details() if self.country else None,
             "is_active": self.is_active
         }
