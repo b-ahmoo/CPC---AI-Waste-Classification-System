@@ -10,6 +10,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
+from app.subsystems.classification.stream import (
+    ConfidenceFilter, DetectionEvent, MaterialRoutingTransformer)
+
 MAX_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB
 
 DEFAULT_PROMPT = (
@@ -22,9 +25,12 @@ DEFAULT_PROMPT = (
     "- beverage: true if it is (or held) a drink, otherwise false\n"
     "- pfand_logo_visible: true only if a German deposit (Pfand / DPG Einweg) "
     "logo or a Mehrweg label is visible on the item, otherwise false\n"
+    "- confidence: how sure you are about this item, as a number between 0 and 1\n"
+    "- bounding_box: the item's box in the image as [x, y, width, height] in pixels\n"
     "Reply only with JSON in this shape: "
     '{"items": [{"item_name": "...", "material": "...", "container": "...", '
-    '"beverage": false, "pfand_logo_visible": false}]}. '
+    '"beverage": false, "pfand_logo_visible": false, "confidence": 0.9, '
+    '"bounding_box": [0, 0, 100, 100]}]}. '
     'If you cannot identify an item, use "nicht erkannt" as item_name and '
     "material. If there is no waste item at all, return an empty list."
 )
@@ -38,13 +44,19 @@ class ClassificationResult:
     """One identified waste item: what it is, what it is made of, and where it goes."""
 
     def __init__(self, item_name: str, material: str, bin_type: str,
-                 is_pfand: bool = False, timestamp: str = None):
+                 is_pfand: bool = False, timestamp: str = None,
+                 confidence: float = 1.0, material_category: str = "",
+                 routing_code: str = ""):
         # Every attribute is set through its setter, so the checks always run.
         self.item_name = item_name
         self.material = material
         self.bin_type = bin_type
         self.is_pfand = is_pfand
         self.timestamp = timestamp or self._current_timestamp()
+        # Set by the stream pipeline (Home Assignment 2); empty until it runs.
+        self.confidence = confidence
+        self.material_category = material_category
+        self.routing_code = routing_code
 
     # --- Initialization methods ---------------------------------------------
 
@@ -57,7 +69,9 @@ class ClassificationResult:
     def from_dict(cls, data: dict) -> "ClassificationResult":
         """Build a result from a dictionary, e.g. a row read back from the database."""
         return cls(data["item_name"], data["material"], data["bin_type"],
-                   data.get("is_pfand", False), data.get("timestamp"))
+                   data.get("is_pfand", False), data.get("timestamp"),
+                   data.get("confidence", 1.0), data.get("material_category", ""),
+                   data.get("routing_code", ""))
 
     # --- Getters and setters ------------------------------------------------
 
@@ -94,6 +108,36 @@ class ClassificationResult:
         self._is_pfand = bool(value)
 
     @property
+    def confidence(self) -> float:
+        return self._confidence
+
+    @confidence.setter
+    def confidence(self, value: float):
+        try:
+            number = float(value)
+        except (TypeError, ValueError):
+            raise ValueError("confidence must be a number between 0 and 1.")
+        if not 0.0 <= number <= 1.0:
+            raise ValueError("confidence must be between 0 and 1.")
+        self._confidence = number
+
+    @property
+    def material_category(self) -> str:
+        return self._material_category
+
+    @material_category.setter
+    def material_category(self, value: str):
+        self._material_category = self._optional_text(value)
+
+    @property
+    def routing_code(self) -> str:
+        return self._routing_code
+
+    @routing_code.setter
+    def routing_code(self, value: str):
+        self._routing_code = self._optional_text(value)
+
+    @property
     def timestamp(self) -> str:
         return self._timestamp
 
@@ -102,6 +146,11 @@ class ClassificationResult:
         self._timestamp = self._non_empty_text(value, "timestamp")
 
     # --- Other methods ------------------------------------------------------
+
+    @staticmethod
+    def _optional_text(value) -> str:
+        """Like _non_empty_text, but empty is allowed: the pipeline has not run yet."""
+        return str(value).strip() if value is not None else ""
 
     @staticmethod
     def _non_empty_text(value, name: str) -> str:
@@ -118,6 +167,9 @@ class ClassificationResult:
             "bin_type": self.bin_type,
             "is_pfand": self.is_pfand,
             "timestamp": self.timestamp,
+            "confidence": self.confidence,
+            "material_category": self.material_category,
+            "routing_code": self.routing_code,
         }
 
     def __repr__(self) -> str:
@@ -214,13 +266,14 @@ class WasteClassifier:
 
     def __init__(self, api_key=None, client=None, bin_mapper=None,
                  prompt_template=DEFAULT_PROMPT, timeout=10, model="gpt-4o-mini",
-                 base_url=None):
+                 base_url=None, min_confidence=0.7):
         self._api_key = api_key
         self._base_url = base_url
         self.timeout = timeout
         self.model = model
         self.prompt_template = prompt_template
         self.bin_mapper = bin_mapper or BinMapper()
+        self.min_confidence = min_confidence  # the setter builds the pipeline
         self._client_injected = client is not None
         self._client = client if client is not None else self._create_client()
 
@@ -283,6 +336,22 @@ class WasteClassifier:
     @prompt_template.setter
     def prompt_template(self, value: str):
         self._prompt_template = ClassificationResult._non_empty_text(value, "prompt_template")
+
+    @property
+    def min_confidence(self) -> float:
+        return self._min_confidence
+
+    @min_confidence.setter
+    def min_confidence(self, value: float):
+        """Changing the threshold rebuilds the stream pipeline straight away."""
+        try:
+            number = float(value)
+        except (TypeError, ValueError):
+            raise ValueError("min_confidence must be a number between 0 and 1.")
+        if not 0.0 <= number <= 1.0:
+            raise ValueError("min_confidence must be between 0 and 1.")
+        self._min_confidence = number
+        self.pipeline = ConfidenceFilter(number) | MaterialRoutingTransformer()
 
     @property
     def bin_mapper(self) -> BinMapper:
@@ -352,20 +421,57 @@ class WasteClassifier:
         return text.strip()
 
     def _parse_response(self, raw: dict) -> list:
+        """Turn the AI's answer into results, filtered and routed by the stream pipeline."""
         unknown = self.bin_mapper.unknown_label
         results = []
         for item in raw.get("items", []):
             name = str(item.get("item_name") or unknown)
             material = str(item.get("material") or unknown)
+
+            # Home Assignment 2 pipeline: drop low-confidence, then route.
+            event = DetectionEvent(
+                item_name=name,
+                material=material,
+                confidence=self._read_confidence(item),
+                bounding_box=self._read_bounding_box(item),
+            )
+            routed = self.pipeline.process(event)
+            if routed is None:
+                continue  # the optical sorter was not confident enough
+
             pfand = self.bin_mapper.is_pfand(item)
             if pfand:
                 bin_type = self.bin_mapper.pfand_bin
             else:
                 bin_type = self.bin_mapper.map_to_bin(material)
-            results.append(ClassificationResult(name, material, bin_type, pfand))
+
+            results.append(ClassificationResult(
+                name, material, bin_type, pfand, None,
+                routed.confidence, routed.material_category, routed.routing_code,
+            ))
         if not results:
             results.append(ClassificationResult(unknown, unknown, unknown, False))
         return results
+
+    @staticmethod
+    def _read_confidence(item: dict) -> float:
+        """A missing or unreadable confidence counts as fully confident, never dropped."""
+        try:
+            value = float(item.get("confidence", 1.0))
+        except (TypeError, ValueError):
+            return 1.0
+        return min(max(value, 0.0), 1.0)
+
+    @staticmethod
+    def _read_bounding_box(item: dict) -> tuple:
+        """A missing or malformed box counts as a normal-sized item."""
+        box = item.get("bounding_box")
+        if isinstance(box, (list, tuple)) and len(box) == 4:
+            try:
+                return tuple(int(n) for n in box)
+            except (TypeError, ValueError):
+                pass
+        return (0, 0, 80, 80)
 
 
 class FakeClient:
@@ -377,9 +483,11 @@ class FakeClient:
     def __init__(self, items=None):
         self.items = items if items is not None else [
             {"item_name": "PET Bottle", "material": "Kunststoff", "container": "plastic_bottle",
-             "beverage": True, "pfand_logo_visible": True},
+             "beverage": True, "pfand_logo_visible": True,
+             "confidence": 0.95, "bounding_box": [40, 30, 120, 260]},
             {"item_name": "Newspaper", "material": "Papier", "container": "other",
-             "beverage": False, "pfand_logo_visible": False},
+             "beverage": False, "pfand_logo_visible": False,
+             "confidence": 0.88, "bounding_box": [200, 120, 150, 90]},
         ]
         self.chat = SimpleNamespace(completions=SimpleNamespace(create=self._create))
 
