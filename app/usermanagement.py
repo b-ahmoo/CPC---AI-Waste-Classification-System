@@ -1,12 +1,11 @@
-
-
-   """
+"""
 Subsystem 1 Implementation: Account Service, Authentication, and Integration
 """
 
 from typing import List, Optional
-from flask import Blueprint, render_template
-from app.models.usermanagement_models import Country, User  
+from flask import Blueprint, render_template, request, redirect, url_for, flash
+from app.models.usermanagement_models import Country, User
+from app.subsystems.exceptions import UserNotFoundError, DuplicateEmailError, InactiveUserError
 
 # Create a Flask Blueprint for Subsystem 1 routes
 user_bp = Blueprint('usermanagement', __name__, template_folder='templates')
@@ -20,20 +19,23 @@ class AccountService:
 
     def create_account(self, user_id: str, username: str, email: str, country: Country) -> User:
         """Registers a new user within the system (Sign Up)."""
+        if self.find_user_by_email(email):
+            raise DuplicateEmailError()
         user = User(user_id=user_id, username=username, email=email, country=country)
         self._users.append(user)
         return user
 
-    def login(self, email: str) -> Optional[User]:
-        """Handles user login authentication."""
+    def login(self, email: str) -> User:
+        """Handles user login authentication with exception checks."""
         user = self.find_user_by_email(email)
-        if user and user.is_active:
-            return user
-        return None
+        if not user:
+            raise UserNotFoundError()
+        if not user.is_active:
+            raise InactiveUserError()
+        return user
 
     def logout(self, user_id: str) -> bool:
         """Handles user logout workflow."""
-        # Session state or active tracking can be handled here or in frontend
         user = self.find_user_by_id(user_id)
         return user is not None
 
@@ -79,8 +81,8 @@ class WasteIntegration:
 
 # Initialize Account Service and sample seed data for the web route
 account_service = AccountService()
-default_country = Country("c1", "Germany", "DE")
-account_service.create_account("u1", "Sejal", "sejal@uni.edu", default_country)
+default_country = Country(country_id="c1", name="Germany", code="DE")
+account_service.create_account(user_id="u1", username="Max", email="max@uni.edu", country=default_country)
 
 
 @user_bp.route('/user/profile/<user_id>')
