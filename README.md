@@ -13,36 +13,32 @@ This document outlines the Minimum Viable Product (MVP) features and database re
 * Srivaishnavi Jakku (7225998) - Statistical Dashboard
 * Swarbhanu Bandyopadhaya (7226982) - Classification System
 * Sejal Dolas ( 7226366 ) - User Management
+---
+# Home Task Assignments
+Link to video presentations for the home task assignments  can be found below. Access only with an FH-Dortmund account.
 
-## Link to video presentation for HomeTaskAssignment001 can be found below. Access only with an FH-Dortmund account.
-https://fhdoprod-my.sharepoint.com/:v:/g/personal/bhavisha_ah-moo001_stud_fh-dortmund_de/IQBIXyuMsSihTLkcpW2DtQS7AaTGcqT9h8J7gA8K9ogRa9I?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJPbmVEcml2ZUZvckJ1c2luZXNzIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXciLCJyZWZlcnJhbFZpZXciOiJNeUZpbGVzTGlua0NvcHkifX0&e=ws5Ejz
+### Home Task Assignment 1
+Branch: [hometaskassignment001](https://github.com/b-ahmoo/CPC---AI-Waste-Classification-System/tree/hometaskassignment001)  
+Video:
 
-All cod implementation of classes can be found under the branch hometaskassignment001 in this github repository, under app/models
+### Home Task Assignment 2
+Branch: [HomeworkAssignment2](https://github.com/b-ahmoo/CPC---AI-Waste-Classification-System/tree/HomeworkAssignment2)  
+Video: [Video HTA2](https://fhdoprod-my.sharepoint.com/:v:/r/personal/bhavisha_ah-moo001_stud_fh-dortmund_de/Documents/MDTSem1/CPC/Capstone/HomeTaskAssignment%20Videos/Group3_HomeTaskAssignment2.mp4?d=w5af3f756afcc456185820c3f00a66ad2&csf=1&web=1&nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJPbmVEcml2ZUZvckJ1c2luZXNzIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXciLCJyZWZlcnJhbFZpZXciOiJNeUZpbGVzTGlua0NvcHkifX0&e=xhRyno)  
+
+### Home Task Assignment 3
+Branch: [HomeworkAssignment3](https://github.com/b-ahmoo/CPC---AI-Waste-Classification-System/tree/HomeworkAssignment3)  
+Video: [Video HTA3](https://fhdoprod-my.sharepoint.com/:v:/r/personal/bhavisha_ah-moo001_stud_fh-dortmund_de/Documents/MDTSem1/CPC/Capstone/HomeTaskAssignment%20Videos/Group3_HomeTaskAssignment3.mp4?d=wb52b4e0d50f942f9992fae9a38dc76f2&csf=1&web=1&nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJPbmVEcml2ZUZvckJ1c2luZXNzIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXciLCJyZWZlcnJhbFZpZXciOiJNeUZpbGVzTGlua0NvcHkifX0&e=SuuB52)  
+
+### Home Task Assignment 4  
+Branch: [HomeworkAssignment4](https://github.com/b-ahmoo/CPC---AI-Waste-Classification-System/tree/HomeworkAssignment4)  
+Video: []()
+
+
+
+
 
 # Class Diagrams
-## 1. User Management Subsystem
-
-<img width="1672" height="464" alt="image" src="https://github.com/user-attachments/assets/b03420fc-87d6-463b-9c12-a7d41f94b61d" />
-
-## 2. Waste Classification Subsystem
-<img width="941" height="337" alt="image" src="https://github.com/user-attachments/assets/c1f2aa36-003b-4b96-b1aa-3e533e53f981" />
-
-## 3. Educational Chatbot
-<img width="944" height="426" alt="image" src="https://github.com/user-attachments/assets/5da769cd-4df4-4b89-9b83-3723df1bb3fc" />
-
-
-## 4. Analytics Dashboard
-<img width="1617" height="959" alt="image" src="https://github.com/user-attachments/assets/15cb5aa8-6590-4f17-9ea2-0f87a3dbb42c" />
-
-
-## 1. Waste Classification Subsystem
-This module handles the core computer vision and identification features.
-
-* **Geographic Scope:** Provides basic waste classification supporting a maximum of 2 countries.
-* **Data Persistence:** Every single item scanned must be saved to the database. 
-  * *Example:* If a user scans 2 plastic bottles, it must create 2 separate entries in the database.
-
-## 2. User Management Subsystem
+## 1. User Management Subsystem (Sejal Dolas)  
 This module handles user creation and profile settings.
 
 * **User creation:** Basic user creation and account setup.
@@ -50,16 +46,18 @@ This module handles user creation and profile settings.
 * **Login:** User login and authentication after account creation.
 * **View country specific rules:** Access a repository of local recycling rules based on selected country.
 
+<img width="1672" height="464" alt="image" src="https://github.com/user-attachments/assets/b03420fc-87d6-463b-9c12-a7d41f94b61d" />
 
-## 3. Analytics Dashboard
-This module provides statistical insights based on classification data.
+## 2. Waste Classification Subsystem (Swarbhanu Bandyopadhaya)  
 
-* **User Statistics:** Basic stats displaying the volume of items scanned per category for individual users. 
-  * *Example:* "40% plastic scanned during the last week."
-* **Government Statistics:** Basic statistical views tailored specifically for government officials and municipalities.
-* **Database Integration:** Must connect to the database to fetch and filter information dynamically by selected fields.
+This module handles the core computer vision and identification features.
 
-## 4. Educational Chatbot
+* **Geographic Scope:** Provides basic waste classification supporting a maximum of 2 countries.
+* **Data Persistence:** Every single item scanned must be saved to the database. 
+  * *Example:* If a user scans 2 plastic bottles, it must create 2 separate entries in the database.
+<img width="941" height="337" alt="image" src="https://github.com/user-attachments/assets/c1f2aa36-003b-4b96-b1aa-3e533e53f981" />
+
+## 3. Educational Chatbot (Bhavisha Ah-Moo)  
 This module provides conversational AI assistance for local recycling rules.
 
 * **Core Functionality:** Basic Q&A capabilities focusing on waste disposal rules for 2 countries.
@@ -67,14 +65,116 @@ This module provides conversational AI assistance for local recycling rules.
 * **Database Integration:** Must connect to the database to:
   * Fetch local recycling rules to feed as context to the chatbot.
   * Fetch the active user's selected country.
-* **Explicit Database Entities:** This subsystem requires these specific entities:
-  * `chat session`
-  * `chat message`
-  * `waste rules`
+  * Fetch count of number of items scanned of a specific type of material.
+
+
+<img width="944" height="426" alt="image" src="https://github.com/user-attachments/assets/5da769cd-4df4-4b89-9b83-3723df1bb3fc" />
+
+
+## 4. Analytics Dashboard (Srivaishnavi Jakku)  
+This module provides statistical insights based on classification data.
+
+* **User Statistics:** Basic stats displaying the volume of items scanned per category for individual users. 
+  * *Example:* "40% plastic scanned during the last week."
+* **Government Statistics:** Basic statistical views tailored specifically for government officials and municipalities.
+* **Database Integration:** Must connect to the database to fetch and filter information dynamically by selected fields.
+<img width="1617" height="959" alt="image" src="https://github.com/user-attachments/assets/15cb5aa8-6590-4f17-9ea2-0f87a3dbb42c" />
 
 ---
-*Note: All subsystems must strictly follow these MVP guidelines to meet the project's foundational database and feature requirements.*
+
+# Setting up the project and Testing
+
+## Prerequisites
+
+Before running the application, ensure you have the following installed on your machine:
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (ensure it is running with WSL 2 backend on Windows)
+- [Git](https://git-scm.com/)
+
 ---
+
+## Getting Started: Quickstart Guide
+
+Follow these steps to get the project running locally without configuring a local Python environment.
+
+### 1. Clone the Repository
+```bash
+git clone <GITLAB_REPO_URL>
+cd CPC---AI-Waste-Classification-System
+```
+
+### 2. Configure Environment Variables
+Copy the template configuration file to create your local `.env` file.
+
+**Windows (PowerShell):**
+```powershell
+Copy-Item .env.example .env
+```
+
+**Mac / Linux / Git Bash:**
+```bash
+cp .env.example .env
+```
+
+Open the `.env` file in your text editor and add your OpenAI API key and project secrets:
+```env
+FLASK_ENV=development
+SECRET_KEY=replace-with-a-random-secret-key
+AZURE_OPENAI_API_KEY=replace-with-your-open-ai-secret-key
+AZURE_OPENAI_ENDPOINT=replace-with-your-open-ai-endpoint
+AZURE_OPENAI_API_VERSION=replace-with-your-open-ai-version
+AZURE_OPENAI_DEPLOYMENT_NAME=replace-with-your-deployment-name
+MYSQL_USER=waste_user
+MYSQL_PASSWORD=waste_password
+MYSQL_DATABASE=waste_assistant_db
+DATABASE_URL=mysql+pymysql://waste_user:waste_password@db:3306/waste_assistant_db
+```
+
+### 3. Build and Start the Application
+Run Docker Compose to build the image and launch the web server:
+```bash
+docker compose up --build
+```
+
+### Note:
+
+Make sure you are on the `main` branch when running the docker and testing the application. The `main` branch contains the completed system.
+
+### 4. Access the Application
+Open your web browser and navigate to: [http://localhost:8000](http://localhost:8000)
+
+To stop the application, press `Ctrl + C` in your terminal, or run:
+```bash
+docker compose down
+```
+
+### 5. Access the Database  
+
+Open your web browser and navigate to: [http://localhost:8080](http://localhost:8080)
+
+
+### 6. Routes
+
+The subsystems can be accessed and tested at the following routes:
+
+* User management:
+* Chatbot: [http://localhost:8000/chat](http://localhost:8000/chat)
+* Classification: [http://localhost:8000/classify](http://localhost:8000/classify)
+* Dashboard: [http://localhost:8000/dashboard](http://localhost:8000/dashboard)
+
+
+---
+
+# The following sections are intended for documentation purposes only.
+
+The following sections document the project architecture, programming guidelines to follow and CI/CD pipelines to abide by. These sections are intended for members of the group working on the project but can be considered for understanding the architecture of the system.
+
+## Branching Guidelines
+
+* **Do not** commit directly to `main`.
+* **Branch naming convention:** `feature/<subsystem>/<feature>` (e.g., `feature/chatbot/chatbot-setup`).
+* Once your task is complete and tested, create a pull request and resolve any conflicts that may arise.
+* Home task assignments have their own dedicated branches. Therefore in addition to merging your home task assignments on main, also merge in the respective branches.
+
 
 ## Database & Object-Oriented Architecture Guide
 
@@ -152,78 +252,6 @@ If you navigate to phpMyAdmin and do not see your new tables, verify the followi
 docker compose down
 docker compose up --build
 ```
-
-## Prerequisites
-
-Before running the application, ensure you have the following installed on your machine:
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (ensure it is running with WSL 2 backend on Windows)
-- [Git](https://git-scm.com/)
-
----
-
-## Getting Started: Quickstart Guide
-
-Follow these steps to get the project running locally without configuring a local Python environment.
-
-### 1. Clone the Repository
-```bash
-git clone <YOUR_GITLAB_REPO_URL>
-cd cpc-ai-waste-classification-system
-```
-
-### 2. Configure Environment Variables
-Copy the template configuration file to create your local `.env` file.
-
-**Windows (PowerShell):**
-```powershell
-Copy-Item .env.example .env
-```
-
-**Mac / Linux / Git Bash:**
-```bash
-cp .env.example .env
-```
-
-Open the `.env` file in your text editor and add your OpenAI API key and project secrets:
-```env
-OPENAI_API_KEY=your_actual_key_here
-FLASK_DEBUG=1
-```
-
-### 3. Build and Start the Application
-Run Docker Compose to build the image and launch the web server:
-```bash
-docker compose up --build
-```
-
-### 4. Access the Application
-Open your web browser and navigate to: [http://localhost:8000](http://localhost:8000)
-
-To stop the application, press `Ctrl + C` in your terminal, or run:
-```bash
-docker compose down
-```
-
-### 5. Access the Database
-Open your web browser and navigate to: [http://localhost:8080](http://localhost:8080)
----
-
-## Development Workflow & Subsystems
-
-This project is divided into four modular subsystems:
-
-* **User Creation & Management** (`app/subsystems/auth/`)
-* **Waste Identification & Classification** (`app/subsystems/classification/`)
-* **Educational Chatbot** (`app/subsystems/chatbot/`)
-* **Statistical Dashboard** (`app/subsystems/dashboard/`)
-
----
-
-## Branching Guidelines
-
-* **Do not** commit directly to `main`.
-* **Branch naming convention:** `feature/<subsystem>/<feature>` (e.g., `feature/educational/chatbot`).
-* Once your task is complete and tested, push your branch and create a Merge Request (MR) on GitLab for review.
 
 ## Statistical Dashboard (Srivaishnavi Jakku)
 
