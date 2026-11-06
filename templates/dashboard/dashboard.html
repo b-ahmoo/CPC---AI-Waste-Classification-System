@@ -139,7 +139,11 @@
         async function loadDashboard() {
             try {
                 const response = await fetch(STATS_URL);
-                if (!response.ok) throw new Error("HTTP " + response.status);
+                if (!response.ok) {
+                    // The dashboard's error handler always answers with {"error": "..."}
+                    const problem = await response.json().catch(() => ({}));
+                    throw new Error(problem.error || ("HTTP " + response.status));
+                }
                 const data = await response.json();
 
                 setText("total-items", data.cards.total_items.toLocaleString());
@@ -153,7 +157,7 @@
                     : "Showing live data from the scans table.");
             } catch (error) {
                 console.error("Failed to load dashboard data:", error);
-                setText("data-note", "Could not load classification data.");
+                setText("data-note", "Could not load the dashboard: " + error.message);
             }
         }
 

@@ -6,13 +6,19 @@ real scans, mock scans are generated with the same material -> bin rules
 """
 
 import json
+import logging
 import random
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from app.extensions import db
 from app.models.dashboard import DashboardSetting, DashboardSnapshot, _scan_date
 from app.models.scan import Scan
+from app.subsystems.dashboard.errors import DataSourceError, InvalidFilterError
+
+logger = logging.getLogger(__name__)
 
 RULES_PATH = Path(__file__).resolve().parent.parent / "classification" / "rules.json"
 
@@ -35,9 +41,13 @@ MOCK_ITEMS = [
 
 def load_bin_rules(path=RULES_PATH):
     """The classification subsystem's rules: material -> bin, and the Pfand bin."""
-    with open(path, encoding="utf-8") as f:
-        rules = json.load(f)
-    return rules["material_to_bin"], rules["pfand"]["bin"], rules["unknown_label"]
+    try:
+        with open(path, encoding="utf-8") as f:
+            rules = json.load(f)
+        return rules["material_to_bin"], rules["pfand"]["bin"], rules["unknown_label"]
+    except (OSError, json.JSONDecodeError, KeyError) as error:
+        # Chain the original error so the log shows the real cause.
+        raise DataSourceError("The bin rules could not be loaded.") from error
 
 
 def generate_mock_scans(count=250, days=14, seed=None):
@@ -60,21 +70,64 @@ def generate_mock_scans(count=250, days=14, seed=None):
     return scans
 
 
+def parse_days(value, maximum=DashboardSetting.MAX_DAYS):
+    """Validate an optional ?days= filter. Returns None when it isn't given."""
+    if value is None or value == "":
+        return None
+    try:
+        days = int(value)
+    except (TypeError, ValueError) as error:
+        raise InvalidFilterError("days must be a whole number.", field="days") from error
+    if not 1 <= days <= maximum:
+        raise InvalidFilterError(f"days must be between 1 and {maximum}.", field="days")
+    return days
+
+
 def load_live_scans(days=14):
-    """Real scans from the classification subsystem, from the last `days` days."""
+    """Real scans from the classification subsystem, from the last `days` days.
+
+    Rows with an unreadable timestamp are skipped (and logged) instead of
+    breaking the whole dashboard.
+    """
     first_day = date.today() - timedelta(days=days - 1)
-    return [s.to_dict() for s in Scan.query.all() if _scan_date(s.timestamp) >= first_day]
+    try:
+        rows = Scan.query.all()
+    except SQLAlchemyError as error:
+        raise DataSourceError("The classification results could not be read.") from error
+
+    scans, skipped = [], 0
+    for row in rows:
+        try:
+            day = _scan_date(row.timestamp)
+        except (TypeError, ValueError):
+            skipped += 1
+            continue
+        else:
+            if day >= first_day:
+                scans.append(row.to_dict())
+    if skipped:
+        logger.warning("Skipped %d scan(s) with an invalid timestamp.", skipped)
+    return scans
 
 
-def build_snapshot(save=True):
-    """Calculate the current statistics and (by default) store them in the database."""
+def build_snapshot(save=True, days=None):
+    """Calculate the current statistics and (by default) store them in the database.
+
+    `days` overrides the saved time range for this one request (from ?days=).
+    """
     setting = DashboardSetting.get_or_create()
-    days = setting.get_time_range_days()
+    days = days or setting.get_time_range_days()
     if setting.get_use_mock_data():
         snapshot = DashboardSnapshot.from_scans(generate_mock_scans(days=days), "mock")
     else:
         snapshot = DashboardSnapshot.from_scans(load_live_scans(days), "live")
     if save:
-        db.session.add(snapshot)
-        db.session.commit()
+        try:
+            db.session.add(snapshot)
+            db.session.commit()
+        except SQLAlchemyError as error:
+            db.session.rollback()
+            raise DataSourceError("The snapshot could not be saved.") from error
+        finally:
+            logger.debug("Snapshot save attempted (source=%s).", snapshot.get_source())
     return snapshot
