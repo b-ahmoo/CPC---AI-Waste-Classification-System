@@ -201,10 +201,10 @@
 
             <!-- The message display area -->
             <div id="chatMessages" class="chat-messages">
-                <div id="chatMessages" class="chat-messages">
+                <!-- <div id="chatMessages" class="chat-messages">
                     <div class="message bot-message">Hello! Ask me any recycling question or how to sort a specific
                         waste item.</div>
-                </div>
+                </div> -->
 
                 <!-- User and Bot bubbles will append here -->
             </div>
@@ -267,7 +267,7 @@
                 });
 
                 // Ensure the active button gets highlighted after the list is built
-                highlightActiveSessionButton();
+                //highlightActiveSessionButton();
 
             } catch (error) {
                 console.error("Failed to load sessions:", error);
@@ -282,6 +282,11 @@
             // Update the UI
             document.getElementById('currentSessionDisplay').innerText = `Current Session: ${currentSessionId}`;
             document.getElementById('chatMessages').innerHTML = ''; // Clear the chat window
+
+            const welcomeDiv = document.createElement('div');
+            welcomeDiv.className = 'message bot-message';
+            welcomeDiv.textContent = 'Hello! Ask me any recycling question or how to sort a specific waste item.';
+            chatMessages.appendChild(welcomeDiv);
 
             console.log("Started new session:", currentSessionId);
         }
