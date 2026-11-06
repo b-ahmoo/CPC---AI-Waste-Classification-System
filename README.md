@@ -225,7 +225,7 @@ This project is divided into four modular subsystems:
 * **Branch naming convention:** `feature/<subsystem>/<feature>` (e.g., `feature/educational/chatbot`).
 * Once your task is complete and tested, push your branch and create a Merge Request (MR) on GitLab for review.
 
-## Statistical Dashboard (Hiranmayai Nemani)
+## Statistical Dashboard (Srivaishnavi Jakku)
 
 The Statistical Dashboard reads the classification results stored by the classification subsystem (the `scans` table), calculates statistics, and shows them on a web dashboard: summary cards (items classified, Pfand items, materials detected), an items-by-bin chart, and an activity-over-time chart. Each refresh is stored in the database as a snapshot.
 
@@ -318,4 +318,194 @@ classDiagram
 
 ![Statistical Dashboard class diagram](docs/uml/dashboard.png)
 
-Run the tests: `docker compose exec web pytest app/subsystems/dashboard/tests`
+Run the tests: `docker compose exec web python -m pytest app/subsystems/dashboard/tests`
+
+## Home Assignment 2: Statistical Dashboard Stream Processing (Srivaishnavi Jakku)
+
+Scenario: **AI-Powered Waste Sorting & Recycling Assistant.** Optical sorters on the conveyor belts send a continuous stream of image-recognition payloads. The dashboard's pipeline filters out low-confidence predictions and tiny noise detections, transforms visual tags and bounding boxes into material categories (PET, HDPE, Aluminium, ...) and conveyor routing codes (e.g. `L1-PET-M`), and aggregates the stream into live dashboard statistics.
+
+Code: `app/subsystems/dashboard/stream.py` · Tests: `app/subsystems/dashboard/tests/test_stream.py`
+
+| OOP concept | Where |
+|---|---|
+| Abstract Base Classes | `StreamProcessor` (`process`), `EventFilter` (`accepts`), `EventTransformer` (`transform`), all with `@abstractmethod` |
+| Inheritance & polymorphism | `ConfidenceFilter`, `BoundingBoxFilter`, `MaterialCategoryTransformer`, `RoutingCodeTransformer`, `DashboardAggregator`: every stage is called through the same `process()` |
+| Operator overloading | `__add__`: `ConfidenceFilter() + BoundingBoxFilter() + MaterialCategoryTransformer()` builds a `ProcessingPipeline` |
+| Iterators & generators | `SorterEventStream` implements `__iter__`/`__next__`; `ProcessingPipeline.stream()` and `tumbling_windows()` are generators |
+
+```python
+pipeline = (ConfidenceFilter(0.75) + BoundingBoxFilter(400)
+            + MaterialCategoryTransformer() + RoutingCodeTransformer() + DashboardAggregator())
+for window in tumbling_windows(pipeline.stream(SorterEventStream(count=200)), 25):
+    ...  # refresh the dashboard once per window
+```
+
+### Class diagram
+
+```mermaid
+classDiagram
+    direction TB
+    class StreamProcessor {
+        <<abstract>>
+        +process(event)* SortingEvent
+        +name: str
+        +#95;#95;add#95;#95;(other) ProcessingPipeline
+    }
+    class EventFilter {
+        <<abstract>>
+        +passed: int
+        +dropped: int
+        +accepts(event)* bool
+        +process(event) SortingEvent
+    }
+    class EventTransformer {
+        <<abstract>>
+        +transform(event)* SortingEvent
+        +process(event) SortingEvent
+    }
+    class ConfidenceFilter {
+        +min_confidence: float
+        +accepts(event) bool
+    }
+    class BoundingBoxFilter {
+        +min_area: int
+        +accepts(event) bool
+    }
+    class MaterialCategoryTransformer {
+        +TAG_TO_CATEGORY: dict
+        +transform(event) SortingEvent
+    }
+    class RoutingCodeTransformer {
+        +LANES: dict
+        +size_class(area) str
+        +transform(event) SortingEvent
+    }
+    class DashboardAggregator {
+        +total: int
+        +by_category: Counter
+        +by_lane: Counter
+        +by_belt: Counter
+        +process(event) SortingEvent
+        +snapshot() dict
+        +reset()
+    }
+    class ProcessingPipeline {
+        +stages: list
+        +add_stage(stage)
+        +process(event) SortingEvent
+        +stream(events) generator
+        +#95;#95;add#95;#95;(other) ProcessingPipeline
+        +#95;#95;len#95;#95;() int
+        +#95;#95;iter#95;#95;() iterator
+    }
+    class SortingEvent {
+        +event_id: int
+        +belt_id: str
+        +visual_tags: list
+        +confidence: float
+        +bounding_box: tuple
+        +timestamp: datetime
+        +material_category: str
+        +routing_code: str
+        +area: int
+    }
+    class SorterEventStream {
+        +count: int
+        +belts: list
+        +#95;#95;iter#95;#95;() SorterEventStream
+        +#95;#95;next#95;#95;() SortingEvent
+    }
+    StreamProcessor <|-- EventFilter
+    StreamProcessor <|-- EventTransformer
+    StreamProcessor <|-- DashboardAggregator
+    StreamProcessor <|-- ProcessingPipeline
+    EventFilter <|-- ConfidenceFilter
+    EventFilter <|-- BoundingBoxFilter
+    EventTransformer <|-- MaterialCategoryTransformer
+    EventTransformer <|-- RoutingCodeTransformer
+    ProcessingPipeline o-- "*" StreamProcessor : stages
+    SorterEventStream ..> SortingEvent : produces
+    StreamProcessor ..> SortingEvent : processes
+```
+
+![Dashboard stream processing class diagram](docs/uml/dashboard_stream.png)
+
+Run the demo: `docker compose exec web python app/subsystems/dashboard/stream.py`
+Run the tests: `docker compose exec web python -m pytest app/subsystems/dashboard/tests`
+
+### Video
+
+Video presentation: _link to be added_
+
+## Home Assignment 3: Flask + MySQL Data Output – Statistical Dashboard
+
+**Student:** Srivaishnavi Jakku · **Student ID:** 7225998 · **Subsystem:** Statistical Dashboard
+**GitHub project:** https://github.com/b-ahmoo/CPC---AI-Waste-Classification-System
+
+The Statistical Dashboard is a Flask blueprint (`app/subsystems/dashboard`) that uses the project's shared MySQL database through Flask-SQLAlchemy. It reads the classification results stored in the `scans` table, calculates statistics, stores them in its own tables, and outputs the data on two pages.
+
+| Page | URL | What it shows |
+|---|---|---|
+| Overview | http://localhost:8000/dashboard/ | Summary cards (items classified, Pfand items, materials detected), items-by-bin chart, activity-over-time chart |
+| Data | http://localhost:8000/dashboard/data | The rows of the `scans` table, filterable by material, bin and time period, plus the latest saved snapshots from `dashboard_snapshots` |
+
+**MySQL tables used**
+
+| Table | Model | Role |
+|---|---|---|
+| `scans` | `Scan` (classification subsystem) | Source data: one row per classified item |
+| `dashboard_settings` | `DashboardSetting` | Mock or live data, time range |
+| `dashboard_snapshots` | `DashboardSnapshot` | Statistics saved on every Overview visit |
+| `bin_statistics` | `BinStatistic` | Items per bin in a snapshot |
+| `daily_activity` | `DailyActivity` | Items per day in a snapshot |
+
+**How it works:** `routes.py` handles the requests, `services.py` queries MySQL with SQLAlchemy (e.g. `Scan.query.filter(Scan.material == material).order_by(Scan.timestamp.desc())`), and the Jinja templates in `templates/dashboard/` render the results as HTML tables and charts.
+
+**Run it**
+
+1. Copy `.env.example` to `.env` and set the MySQL settings (`MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`, `DATABASE_URL=mysql+pymysql://<user>:<password>@db:3306/<database>`).
+2. `docker compose up --build`
+3. Open http://localhost:8000/dashboard/data and click **Add sample scans** to fill the `scans` table with example rows (they can be removed again with **Remove sample scans**).
+4. Check the tables in phpMyAdmin: http://localhost:8080
+5. Tests: `docker compose exec web python -m pytest app/subsystems/dashboard/tests`
+
+## Home Assignment 4: Exception Handling and Unit Tests – Statistical Dashboard
+
+**Student:** Srivaishnavi Jakku · **Student ID:** 7225998 · **Subsystem:** Statistical Dashboard
+**GitHub project:** https://github.com/b-ahmoo/CPC---AI-Waste-Classification-System
+
+### Error handling (`app/subsystems/dashboard/errors.py`)
+
+The dashboard raises its own exceptions, each with an HTTP status and a message that is safe to show to users:
+
+| Exception | Status | Raised when |
+|---|---|---|
+| `DashboardError` | 500 | Base class for every dashboard error |
+| `InvalidSettingError` | 400 | A setting is invalid, unknown, or the request body is not JSON |
+| `InvalidFilterError` | 400 | A filter such as `?days=` is not a whole number between 1 and 365 |
+| `DataSourceError` | 503 | The scans, the bin rules or the dashboard tables cannot be read or saved |
+
+**`DashboardErrorHandler`** is the subsystem's error-handling class. Every dashboard route uses it:
+
+* it maps any exception to a `DashboardError` (`ValueError` from the model setters → 400, `SQLAlchemyError` → 503, anything else → 500),
+* logs user mistakes as warnings and real bugs with the full traceback,
+* rolls back a failed database transaction (and logs it if the rollback itself fails),
+* returns a consistent JSON body, e.g. `{"error": "days must be a whole number.", "type": "InvalidFilterError", "field": "days"}`, so users never see a stack trace,
+* registers itself on the blueprint, so 404/405 errors under `/dashboard` are also returned as JSON,
+* on the HTML data page, errors are shown as a message on the page instead of JSON.
+
+The services use `try / except / else / finally` and exception chaining (`raise DataSourceError(...) from error`), skip scans with unreadable timestamps instead of failing, and settings changes are rolled back completely if any value is invalid.
+
+### Unit tests (`app/subsystems/dashboard/tests/test_error_handling.py`)
+
+22 tests, written with pytest and Flask's test client against an in-memory database (no MySQL or API key needed):
+
+| Area | Tests |
+|---|---|
+| Exception classes | hierarchy and status codes; default messages and `field` |
+| `DashboardErrorHandler` | `ValueError` → 400; database error → 503 with rollback; unexpected errors hidden from users but logged with traceback; user mistakes logged as warnings; failed rollback logged, not raised |
+| Services | valid `days` values; invalid `days` values; missing rules file → `DataSourceError` with the original cause; scans with broken timestamps skipped |
+| Routes | invalid `?days=` → 400; database down → 503; failed snapshot save → 503 and nothing saved; non-JSON settings body → 400; unknown setting → 400; invalid setting rolled back completely; unknown dashboard URL → JSON 404; wrong HTTP method → JSON 405; unexpected bug → friendly 500; data page with invalid filter → 400 with message; data page with database down → 503 with message |
+
+Run all dashboard tests (77, covering Home Assignments 1–4):
+`docker compose exec web python -m pytest app/subsystems/dashboard/tests`
