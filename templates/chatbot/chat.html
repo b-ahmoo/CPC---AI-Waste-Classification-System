@@ -1,81 +1,390 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>AI Recycling Chatbot</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; display: flex; justify-content: center; }
-        .chat-container { width: 100%; max-width: 600px; background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; flex-direction: column; height: 80vh; overflow: hidden; }
-        .chat-header { background: #2e7d32; color: white; padding: 15px; text-align: center; font-weight: bold; }
-        .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-        .message { padding: 10px 15px; border-radius: 15px; max-width: 75%; line-height: 1.4; }
-        .user-message { background: #e3f2fd; align-self: flex-end; color: #0d47a1; }
-        .bot-message { background: #e8f5e9; align-self: flex-start; color: #1b5e20; }
-        .chat-input-area { display: flex; padding: 15px; background: #fff; border-top: 1px solid #ddd; }
-        .chat-input-area input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; outline: none; }
-        .chat-input-area button { background: #2e7d32; color: white; border: none; padding: 10px 20px; margin-left: 10px; border-radius: 4px; cursor: pointer; }
-        .chat-input-area button:hover { background: #1b5e20; }
+        /* General Layout */
+        .chat-layout {
+            display: flex;
+            height: 85vh;
+            max-width: 1200px;
+            margin: 20px auto;
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* Sidebar Styling */
+        .chat-sidebar {
+            width: 280px;
+            background-color: #ffffff;
+            border-right: 1px solid #e0e0e0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-sidebar h3 {
+            font-size: 13px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            margin-bottom: 15px;
+        }
+
+        .new-chat-btn {
+            background-color: #10a37f;
+            /* A familiar AI green */
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 25px;
+            transition: background-color 0.2s ease;
+        }
+
+        .new-chat-btn:hover {
+            background-color: #0b8c6d;
+        }
+
+        .session-list {
+            list-style: none;
+            padding: 0;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        .session-list button {
+            width: 100%;
+            text-align: left;
+            padding: 12px 15px;
+            background: none;
+            border: none;
+            border-radius: 6px;
+            color: #343a40;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            margin-bottom: 5px;
+        }
+
+        .session-list button:hover {
+            background-color: #f1f3f5;
+        }
+
+        /* Main Chat Window */
+        .chat-main {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: #f8f9fa;
+            padding: 20px 30px;
+        }
+
+        .chat-header {
+            font-size: 18px;
+            color: #343a40;
+            margin-top: 0;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .chat-messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding-right: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        /* Message Bubbles */
+        .message {
+            max-width: 75%;
+            padding: 14px 18px;
+            border-radius: 18px;
+            line-height: 1.5;
+            font-size: 15px;
+            word-wrap: break-word;
+        }
+
+        .user-message {
+            background-color: #10a37f;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+            /* Creates the speech bubble tail effect */
+        }
+
+        .bot-message {
+            background-color: #ffffff;
+            color: #343a40;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Input Area */
+        .chat-input-container {
+            display: flex;
+            gap: 10px;
+            background-color: white;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+        }
+
+        .chat-input-container input {
+            flex-grow: 1;
+            border: none;
+            outline: none;
+            font-size: 15px;
+            padding: 5px 10px;
+        }
+
+        .chat-input-container button {
+            background-color: #10a37f;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .chat-input-container button:hover {
+            background-color: #0b8c6d;
+        }
+
+        .session-list button.active-session {
+            background-color: #e9ecef;
+            font-weight: 600;
+            color: #10a37f;
+            border-left: 4px solid #10a37f;
+            border-radius: 4px;
+            /* Slightly adjust radius for the flat left border */
+        }
     </style>
+
 </head>
+
 <body>
 
-    <div class="chat-container">
-        <div class="chat-header">AI Waste Sorting & Recycling Assistant</div>
-        
-        <div id="chatMessages" class="chat-messages">
-            <div class="message bot-message">Hello! Ask me any recycling question or how to sort a specific waste item.</div>
+    <div class="chat-layout">
+
+        <!-- 1. The Sidebar -->
+        <div class="chat-sidebar">
+            <button class="new-chat-btn" onclick="startNewSession()">
+                + New Chat
+            </button>
+
+            <h3>Past Conversations</h3>
+            <ul id="sessionList" class="session-list">
+                <!-- JS dynamically injects session buttons here -->
+            </ul>
         </div>
 
-        <div class="chat-input-area">
-            <input type="text" id="userInput" placeholder="Type your recycling question here..." autocomplete="off">
-            <button onclick="sendMessage()">Send</button>
+        <!-- 2. The Main Chat Window -->
+        <div class="chat-main">
+            <h3 id="currentSessionDisplay" class="chat-header">Current Session: Loading...</h3>
+
+            <!-- The message display area -->
+            <div id="chatMessages" class="chat-messages">
+                <!-- <div id="chatMessages" class="chat-messages">
+                    <div class="message bot-message">Hello! Ask me any recycling question or how to sort a specific
+                        waste item.</div>
+                </div> -->
+
+                <!-- User and Bot bubbles will append here -->
+            </div>
+
+            <!-- The input area -->
+            <div class="chat-input-container">
+                <input type="text" id="userInput" placeholder="Type your waste sorting question here...">
+                <button onclick="sendMessage()">Send</button>
+            </div>
         </div>
+
     </div>
-
     <script>
+        let currentSessionId = null;
+
+        async function initializeChat() {
+            // fetching all past sessions from the backend
+            await loadSidebarSessions();
+
+            // If no sessions exist, start a brand new one
+            if (!currentSessionId) {
+                startNewSession();
+            }
+        }
+
+        async function loadSidebarSessions() {
+            try {
+                const response = await fetch('/chat/sessions');
+                const data = await response.json();
+
+                const sessionListUl = document.getElementById('sessionList');
+                sessionListUl.innerHTML = ''; // Clear the current list
+
+                // Loop through the sessions returned by Flask
+                data.sessions.forEach(session => {
+                    const li = document.createElement('li');
+                    li.style.marginBottom = "5px";
+
+                    // 1. Convert the ISO string from the database to a readable date
+                    let displayDate = `Chat ${session.session_id}`; // Fallback just in case
+
+                    if (session.created_at) {
+                        const dateObj = new Date(session.created_at);
+
+                        // Format: "MM/DD/YYYY, HH:MM AM/PM" (adjusts to user's local timezone)
+                        displayDate = dateObj.toLocaleDateString() + " " + dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    }
+
+                    // 2. Create a button using the readable date instead of just the ID
+                    li.innerHTML = `<button style="width: 100%; text-align: left;" onclick="switchSession(${session.session_id})">
+                                ${displayDate}
+                            </button>`;
+                    sessionListUl.appendChild(li);
+
+                    // Set the active session to the most recent one (the first in the list)
+                    if (!currentSessionId) {
+                        currentSessionId = session.session_id;
+                        document.getElementById('currentSessionDisplay').innerText = `Current Session: ${currentSessionId}`;
+                    }
+                });
+
+                // Ensure the active button gets highlighted after the list is built
+                //highlightActiveSessionButton();
+
+            } catch (error) {
+                console.error("Failed to load sessions:", error);
+            }
+        }
+
+        function startNewSession() {
+            // Generate a unique ID (Timestamp in seconds)
+            currentSessionId = Math.floor(Date.now() / 1000);
+            console.log("Chat Session Started. ID:", currentSessionId);
+
+            // Update the UI
+            document.getElementById('currentSessionDisplay').innerText = `Current Session: ${currentSessionId}`;
+            document.getElementById('chatMessages').innerHTML = ''; // Clear the chat window
+
+            const welcomeDiv = document.createElement('div');
+            welcomeDiv.className = 'message bot-message';
+            welcomeDiv.textContent = 'Hello! Ask me any recycling question or how to sort a specific waste item.';
+            chatMessages.appendChild(welcomeDiv);
+
+            console.log("Started new session:", currentSessionId);
+        }
+
+        async function switchSession(sessionId) {
+            currentSessionId = sessionId;
+
+            // Update the UI Header
+            document.getElementById('currentSessionDisplay').innerText = `Current Session: ${currentSessionId}`;
+
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML = ''; // Clear the chat window
+
+            console.log("Switched to session:", currentSessionId);
+
+            try {
+                // Fetch the message history from the backend
+                const response = await fetch(`/chat/history/${sessionId}`);
+                const data = await response.json();
+
+                // Loop through the messages and append them to the UI
+                if (data.status === "success" && data.messages) {
+                    data.messages.forEach(msg => {
+                        const msgDiv = document.createElement('div');
+
+                        // Assign the correct class based on the sender
+                        if (msg.sender === "user") {
+                            msgDiv.className = 'message user-message';
+                        } else {
+                            msgDiv.className = 'message bot-message';
+                        }
+
+                        msgDiv.textContent = msg.message;
+                        chatMessages.appendChild(msgDiv);
+                    });
+
+                    // Scroll to the bottom of the chat
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+            } catch (error) {
+                console.error("Failed to load chat history:", error);
+            }
+        }
+
+        window.onload = initializeChat;
+
+
+
+
         document.getElementById('userInput').addEventListener('keypress', function (e) {
-    if (e.key === 'Enter') {
-        sendMessage();
-    }
-});
-
-async function sendMessage() {
-    const inputField = document.getElementById('userInput');
-    const messageText = inputField.value.trim();
-    if (!messageText) return;
-
-    const chatMessages = document.getElementById('chatMessages');
-
-    // 1. Append user message to chat UI
-    const userDiv = document.createElement('div');
-    userDiv.className = 'message user-message';
-    userDiv.textContent = messageText;
-    chatMessages.appendChild(userDiv);
-
-    inputField.value = '';
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-
-    try {
-        // 2. Send message to Flask backend endpoint
-        const response = await fetch('/chat/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: messageText })
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
         });
 
-        const data = await response.json();
+        async function sendMessage() {
+            const inputField = document.getElementById('userInput');
+            const messageText = inputField.value.trim();
+            if (!messageText) return;
 
-        // 3. Append bot response to chat UI
-        const botDiv = document.createElement('div');
-        botDiv.className = 'message bot-message';
-        botDiv.textContent = data.response;
-        chatMessages.appendChild(botDiv);
-        
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    } catch (error) {
-        console.error('Error communicating with chatbot backend:', error);
-    }
-}
+            const chatMessages = document.getElementById('chatMessages');
+
+            // 1. Append user message to chat UI
+            const userDiv = document.createElement('div');
+            userDiv.className = 'message user-message';
+            userDiv.textContent = messageText;
+            chatMessages.appendChild(userDiv);
+
+            inputField.value = '';
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            try {
+                // 2. Send message to Flask backend endpoint
+                const response = await fetch('/chat/ask', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: messageText,
+                        session_id: currentSessionId,
+                        user_id: 1,
+                        country: 'Germany'
+                    })
+                });
+
+                const data = await response.json();
+
+                // 3. Append bot response to chat UI
+                const botDiv = document.createElement('div');
+                botDiv.className = 'message bot-message';
+                botDiv.textContent = data.reply;
+                chatMessages.appendChild(botDiv);
+
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            } catch (error) {
+                console.error('Error communicating with chatbot backend:', error);
+            }
+        }
     </script>
 </body>
+
 </html>
