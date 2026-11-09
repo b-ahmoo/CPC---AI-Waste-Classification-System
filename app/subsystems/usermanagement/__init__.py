@@ -2,10 +2,8 @@ import os
 from flask import Flask, jsonify
 
 def create_app(test_config=None):
-    # Initialize Flask Application
     app = Flask(__name__, instance_relative_config=True)
 
-    # Basic App Configuration
     app.config.from_mapping(
         SECRET_KEY=os.environ.get('SECRET_KEY', 'dev_key'),
     )
@@ -15,7 +13,6 @@ def create_app(test_config=None):
     else:
         app.config.from_mapping(test_config)
 
-    # Health Check Route
     @app.route('/')
     def index():
         return jsonify({
@@ -30,7 +27,6 @@ def create_app(test_config=None):
     from app.subsystems.dashboard.dashboard import dashboard_bp
     app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
 
-    # Register User Management Subsystem Blueprint
     from app.subsystems.usermanagement.usermanagement import user_bp
     app.register_blueprint(user_bp, url_prefix='/usermanagement')
 
