@@ -4,6 +4,12 @@ Subsystem 1 Implementation: Account Service, Authentication, and Integration
 
 from typing import List, Optional
 from flask import Blueprint, render_template, request, redirect, url_for, flash
+user_bp = Blueprint('usermanagement', __name__, template_folder='templates')
+
+@user_bp.route('/')
+def index():
+    return render_template('usermanagement/user_profile.html')
+
 from app.models.usermanagement_models import Country, User
 from app.subsystems.usermanagement.exceptions import UserNotFoundError, DuplicateEmailError, InactiveUserError
 # Create a Flask Blueprint for Subsystem 1 routes
