@@ -1,70 +1,37 @@
-from typing import List, Optional
-from flask import Blueprint, render_template
-from app.models.usermanagement_models import Country, User
-from app.subsystems.usermanagement.exceptions import UserNotFoundError, DuplicateEmailError, InactiveUserError
+import os
+from flask import Flask, jsonify
 
-user_bp = Blueprint('usermanagement', __name__, template_folder='templates')
+def create_app(test_config=None):
+    # Initialize Flask Application
+    app = Flask(__name__, instance_relative_config=True)
 
-class AccountService:
-    def __init__(self):
-        self._users: List[User] = []
+    # Basic App Configuration
+    app.config.from_mapping(
+        SECRET_KEY=os.environ.get('SECRET_KEY', 'dev_key'),
+    )
 
-    def create_account(self, user_id: str, username: str, email: str, country: Country) -> User:
-        if self.find_user_by_email(email):
-            raise DuplicateEmailError()
-        user = User(user_id=user_id, username=username, email=email, country=country)
-        self._users.append(user)
-        return user
+    if test_config is None:
+        app.config.from_pyfile('config.py', silent=True)
+    else:
+        app.config.from_mapping(test_config)
 
-    def login(self, email: str) -> User:
-        user = self.find_user_by_email(email)
-        if not user:
-            raise UserNotFoundError()
-        if not user.is_active:
-            raise InactiveUserError()
-        return user
+    # Health Check Route
+    @app.route('/')
+    def index():
+        return jsonify({
+            "service": "AI Waste Assistant MVP",
+            "status": "healthy"
+        })
 
-    def logout(self, user_id: str) -> bool:
-        user = self.find_user_by_id(user_id)
-        return user is not None
+    # Register Subsystem Blueprints
+    from app.subsystems.chatbot.chatbot import chatbot_bp
+    app.register_blueprint(chatbot_bp, url_prefix='/chat')
 
-    def deactivate_user_account(self, user_id: str) -> bool:
-        user = self.find_user_by_id(user_id)
-        if user:
-            user.deactivate_account()
-            return True
-        return False
+    from app.subsystems.dashboard.dashboard import dashboard_bp
+    app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
 
-    def find_user_by_id(self, user_id: str) -> Optional[User]:
-        for user in self._users:
-            if user.user_id == user_id:
-                return user
-        return None
+    # Register User Management Subsystem Blueprint
+    from app.subsystems.usermanagement.usermanagement import user_bp
+    app.register_blueprint(user_bp, url_prefix='/usermanagement')
 
-    def find_user_by_email(self, email: str) -> Optional[User]:
-        for user in self._users:
-            if user.email == email:
-                return user
-        return None
-
-class WasteIntegration:
-    @staticmethod
-    def get_user_waste_regulations(user: User) -> dict:
-        country_code = user.country.code
-        return {
-            "user": user.username,
-            "applicable_country": user.country.name,
-            "local_disposal_guidelines": f"Standard sorting rules applied for region {country_code}"
-        }
-
-account_service = AccountService()
-default_country = Country(country_id="c1", name="Germany", code="DE")
-account_service.create_account(user_id="u1", username="Max", email="max@uni.edu", country=default_country)
-
-@user_bp.route('/user/profile/<user_id>')
-def user_profile(user_id):
-    user = account_service.find_user_by_id(user_id)
-    if not user:
-        return "User not found", 404
-    integration_data = WasteIntegration.get_user_waste_regulations(user)
-    return render_template('user_profile.html', user=user.to_dict(), rules=integration_data)
+    return app
