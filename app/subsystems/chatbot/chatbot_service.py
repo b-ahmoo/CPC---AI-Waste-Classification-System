@@ -31,7 +31,7 @@ class ChatbotService:
             ).all()
 
             if not rules:
-                return "Follow standard municipal sorting guidelines."
+                return f"Follow standard municipal sorting guidelines for {user_country}."
 
             combined_rules = ""
             for r in rules:

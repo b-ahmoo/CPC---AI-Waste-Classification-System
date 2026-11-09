@@ -31,9 +31,10 @@ def ask_chatbot():
     user_country = data.get('country', 'Germany')
     user_material = data.get('material_type', 'General')
 
+  
 
-    if not user_text or not session_id:
-        return jsonify({"error": "Message and session_id are required"}), 400
+    if not data or not user_text or not session_id:
+        return jsonify({"error": "Message and session_id are required", "status_code":400}), 400
 
     try:
         session = ChatSession.query.get(session_id)
@@ -66,7 +67,7 @@ def ask_chatbot():
         return jsonify({
             "status": "success",
             "reply": ai_reply_text
-        })
+        }), 200
 
     except Exception as e:
         db.session.rollback()
@@ -77,7 +78,7 @@ def ask_chatbot():
         return jsonify({
             "status": "error", 
             "message": "An error occurred processing your request."
-        }), 500
+        }), 400
 
 
 
@@ -111,16 +112,24 @@ def get_chat_history(session_id):
 
     try:
         messages = ChatMessage.query.filter_by(session_id=session_id).order_by(ChatMessage.time_sent.asc()).all()
+
+        if messages:
         
-        # Format the data into a JSON list
-        message_list = [
-            {
-                "sender": msg.sender, 
-                "message": msg.message
-            } for msg in messages
-        ]
-        
-        return jsonify({"status": "success", "messages": message_list})
+            # Format the data into a JSON list
+            message_list = [
+                {
+                    "sender": msg.sender, 
+                    "message": msg.message
+                } for msg in messages
+            ]
+            
+            return jsonify({"status": "success", "messages": message_list})
+        else:
+            return jsonify({
+                                "status": "error", 
+                                "message": "An error occurred fetching chat history from database."
+                            }), 404
+
 
     except Exception as e:
           print(f"Error in history route: {e}")
