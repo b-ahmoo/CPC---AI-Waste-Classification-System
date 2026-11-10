@@ -1,5 +1,5 @@
 
- from typing import List, Optional
+from typing import List, Optional
 from flask import Blueprint, render_template, request, redirect, url_for
 from app.models.usermanagement_models import Country, User
 from app.subsystems.usermanagement.exceptions import UserNotFoundError, DuplicateEmailError, InactiveUserError
