@@ -1,3 +1,48 @@
+# Class Diagrams
+## 1. User Management Subsystem (Sejal Dolas)  
+This module handles user creation and profile settings.
+
+* **User creation:** Basic user creation and account setup.
+* **Country selection upon set up** Must implement a minimum of 3 unique database entities.
+* **Login:** User login and authentication after account creation.
+* **View country specific rules:** Access a repository of local recycling rules based on selected country.
+
+<img width="1672" height="464" alt="image" src="https://github.com/user-attachments/assets/b03420fc-87d6-463b-9c12-a7d41f94b61d" />
+
+## 2. Waste Classification Subsystem (Swarbhanu Bandyopadhaya)  
+
+This module handles the core computer vision and identification features.
+
+* **Geographic Scope:** Provides basic waste classification supporting a maximum of 2 countries.
+* **Data Persistence:** Every single item scanned must be saved to the database. 
+  * *Example:* If a user scans 2 plastic bottles, it must create 2 separate entries in the database.
+<img width="941" height="337" alt="image" src="https://github.com/user-attachments/assets/c1f2aa36-003b-4b96-b1aa-3e533e53f981" />
+
+## 3. Educational Chatbot (Bhavisha Ah-Moo)  
+This module provides conversational AI assistance for local recycling rules.
+
+* **Core Functionality:** Basic Q&A capabilities focusing on waste disposal rules for 2 countries.
+* **Session Handling:** Must include active chat session management.
+* **Database Integration:** Must connect to the database to:
+  * Fetch local recycling rules to feed as context to the chatbot.
+  * Fetch the active user's selected country.
+  * Fetch count of number of items scanned of a specific type of material.
+
+
+<img width="944" height="426" alt="image" src="https://github.com/user-attachments/assets/5da769cd-4df4-4b89-9b83-3723df1bb3fc" />
+
+
+## 4. Analytics Dashboard (Srivaishnavi Jakku)  
+This module provides statistical insights based on classification data.
+
+* **User Statistics:** Basic stats displaying the volume of items scanned per category for individual users. 
+  * *Example:* "40% plastic scanned during the last week."
+* **Government Statistics:** Basic statistical views tailored specifically for government officials and municipalities.
+* **Database Integration:** Must connect to the database to fetch and filter information dynamically by selected fields.
+<img width="1617" height="959" alt="image" src="https://github.com/user-attachments/assets/15cb5aa8-6590-4f17-9ea2-0f87a3dbb42c" />
+
+---
+
 ## Statistical Dashboard (Srivaishnavi Jakku)
 
 The Statistical Dashboard reads the classification results stored by the classification subsystem (the `scans` table), calculates statistics, and shows them on a web dashboard: summary cards (items classified, Pfand items, materials detected), an items-by-bin chart, and an activity-over-time chart. Each refresh is stored in the database as a snapshot.
