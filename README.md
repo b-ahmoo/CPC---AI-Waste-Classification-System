@@ -151,6 +151,17 @@ docker compose down
 
 Open your web browser and navigate to: [http://localhost:8080](http://localhost:8080)
 
+**Upgrading an existing database.** If your database was created before the classification
+routing code feature was added, the `scans` table has no `routing_code` column and the
+classification page will report that the database is unavailable. Add the column once:
+
+```bash
+docker compose exec db sh -c 'mysql -u root -prootpassword "$MYSQL_DATABASE" -e "ALTER TABLE scans ADD COLUMN routing_code VARCHAR(10) NOT NULL DEFAULT \"\";"'
+```
+
+This reads the database name from your `.env`, so it works whatever you called it. A fresh
+setup does not need this — the column is created with the table.
+
 
 ### 6. Routes
 
