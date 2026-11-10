@@ -14,6 +14,7 @@ This module handles user creation and profile settings.
 This module handles the core computer vision and identification features.
 
 * **Geographic Scope:** Provides basic waste classification supporting a maximum of 2 countries.
+* *Implemented:* Germany (`rules.json`). The rules file is per country, so adding a second country is a configuration change, not a code change.
 * **Data Persistence:** Every single item scanned must be saved to the database. 
   * *Example:* If a user scans 2 plastic bottles, it must create 2 separate entries in the database.
 <img width="941" height="337" alt="image" src="https://github.com/user-attachments/assets/c1f2aa36-003b-4b96-b1aa-3e533e53f981" />
