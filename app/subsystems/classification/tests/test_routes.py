@@ -63,11 +63,11 @@ def test_database_saves_and_finds_by_hash(app):
     with app.app_context():
         save_results([{"timestamp": "2026-10-29T10:00:00+00:00", "item_name": "PET Bottle",
                        "material": "Kunststoff", "bin_type": "Pfandautomat", "is_pfand": True}],
-                     "abc123", user_id=7)
+                     "abc123", user_id="u1")
         found = find_by_hash("abc123")
         assert found[0]["item_name"] == "PET Bottle"
         assert found[0]["is_pfand"] is True
-        assert Scan.query.first().user_id == 7
+        assert Scan.query.first().user_id == "u1"
         assert find_by_hash("other") == []
 
 
