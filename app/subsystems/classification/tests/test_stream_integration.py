@@ -103,3 +103,24 @@ def test_missing_confidence_and_box_are_not_dropped():
     assert [r.item_name for r in results] == ["Newspaper"]
     assert results[0].confidence == 1.0
     assert results[0].routing_code == "R-06"
+
+
+# --- The scans.user_id column must hold the ids the user subsystem issues -----
+
+def test_user_id_column_accepts_the_string_ids_used_by_user_management():
+    """SQLite ignores column types, so assert the declared type directly.
+
+    users.user_id is a String(50) primary key. If scans.user_id were an Integer,
+    MySQL would reject every scan made by a logged-in user with
+    "Incorrect integer value", even though the SQLite tests would still pass.
+    """
+    from sqlalchemy import String
+
+    from app.models.scan import Scan
+
+    column = Scan.__table__.columns["user_id"]
+    assert isinstance(column.type, String), (
+        f"scans.user_id is {column.type!r}; it must be a String to match "
+        f"users.user_id in the user management subsystem"
+    )
+    assert column.type.length >= 50

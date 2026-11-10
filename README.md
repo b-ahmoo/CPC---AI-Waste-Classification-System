@@ -153,10 +153,12 @@ Open your web browser and navigate to: [http://localhost:8080](http://localhost:
 
 **Upgrading an existing database.** If your database was created before the classification
 routing code feature was added, the `scans` table has no `routing_code` column and the
-classification page will report that the database is unavailable. Add the column once:
+classification page will report that the database is unavailable. The `user_id` column
+also needs widening to hold the string ids used by the user management subsystem. Run both
+changes once:
 
 ```bash
-docker compose exec db sh -c 'mysql -u root -prootpassword "$MYSQL_DATABASE" -e "ALTER TABLE scans ADD COLUMN routing_code VARCHAR(10) NOT NULL DEFAULT \"\";"'
+docker compose exec db sh -c 'mysql -u root -prootpassword "$MYSQL_DATABASE" -e "ALTER TABLE scans ADD COLUMN routing_code VARCHAR(10) NOT NULL DEFAULT \"\"; ALTER TABLE scans MODIFY COLUMN user_id VARCHAR(50) NULL;"'
 ```
 
 This reads the database name from your `.env`, so it works whatever you called it. A fresh
