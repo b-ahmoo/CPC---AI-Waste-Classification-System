@@ -92,4 +92,4 @@ def user_profile(user_id):
         return "User not found", 404
         
     integration_data = WasteIntegration.get_user_waste_regulations(user)
-    return render_template('user_profile.html', user=user.to_dict(), rules=integration_data)
+    return render_template('usermanagement/user_profile.html', user=user.to_dict(), rules=integration_data)
