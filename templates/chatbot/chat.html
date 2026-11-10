@@ -166,6 +166,15 @@
         .chat-input-container button:hover {
             background-color: #0b8c6d;
         }
+
+        .session-list button.active-session {
+            background-color: #e9ecef;
+            font-weight: 600;
+            color: #10a37f;
+            border-left: 4px solid #10a37f;
+            border-radius: 4px;
+            /* Slightly adjust radius for the flat left border */
+        }
     </style>
 
 </head>
@@ -192,10 +201,10 @@
 
             <!-- The message display area -->
             <div id="chatMessages" class="chat-messages">
-                <div id="chatMessages" class="chat-messages">
+                <!-- <div id="chatMessages" class="chat-messages">
                     <div class="message bot-message">Hello! Ask me any recycling question or how to sort a specific
                         waste item.</div>
-                </div>
+                </div> -->
 
                 <!-- User and Bot bubbles will append here -->
             </div>
@@ -234,9 +243,19 @@
                     const li = document.createElement('li');
                     li.style.marginBottom = "5px";
 
-                    // Create a button for each past session to allow users to click and open
+                    // 1. Convert the ISO string from the database to a readable date
+                    let displayDate = `Chat ${session.session_id}`; // Fallback just in case
+
+                    if (session.created_at) {
+                        const dateObj = new Date(session.created_at);
+
+                        // Format: "MM/DD/YYYY, HH:MM AM/PM" (adjusts to user's local timezone)
+                        displayDate = dateObj.toLocaleDateString() + " " + dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    }
+
+                    // 2. Create a button using the readable date instead of just the ID
                     li.innerHTML = `<button style="width: 100%; text-align: left;" onclick="switchSession(${session.session_id})">
-                                Chat ${session.session_id}
+                                ${displayDate}
                             </button>`;
                     sessionListUl.appendChild(li);
 
@@ -246,6 +265,10 @@
                         document.getElementById('currentSessionDisplay').innerText = `Current Session: ${currentSessionId}`;
                     }
                 });
+
+                // Ensure the active button gets highlighted after the list is built
+                //highlightActiveSessionButton();
+
             } catch (error) {
                 console.error("Failed to load sessions:", error);
             }
@@ -260,19 +283,52 @@
             document.getElementById('currentSessionDisplay').innerText = `Current Session: ${currentSessionId}`;
             document.getElementById('chatMessages').innerHTML = ''; // Clear the chat window
 
+            const welcomeDiv = document.createElement('div');
+            welcomeDiv.className = 'message bot-message';
+            welcomeDiv.textContent = 'Hello! Ask me any recycling question or how to sort a specific waste item.';
+            chatMessages.appendChild(welcomeDiv);
+
             console.log("Started new session:", currentSessionId);
         }
 
-        function switchSession(sessionId) {
+        async function switchSession(sessionId) {
             currentSessionId = sessionId;
 
-            // Update the UI
+            // Update the UI Header
             document.getElementById('currentSessionDisplay').innerText = `Current Session: ${currentSessionId}`;
-            document.getElementById('chatMessages').innerHTML = ''; // Clear the chat window
+
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML = ''; // Clear the chat window
 
             console.log("Switched to session:", currentSessionId);
 
+            try {
+                // Fetch the message history from the backend
+                const response = await fetch(`/chat/history/${sessionId}`);
+                const data = await response.json();
 
+                // Loop through the messages and append them to the UI
+                if (data.status === "success" && data.messages) {
+                    data.messages.forEach(msg => {
+                        const msgDiv = document.createElement('div');
+
+                        // Assign the correct class based on the sender
+                        if (msg.sender === "user") {
+                            msgDiv.className = 'message user-message';
+                        } else {
+                            msgDiv.className = 'message bot-message';
+                        }
+
+                        msgDiv.textContent = msg.message;
+                        chatMessages.appendChild(msgDiv);
+                    });
+
+                    // Scroll to the bottom of the chat
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+            } catch (error) {
+                console.error("Failed to load chat history:", error);
+            }
         }
 
         window.onload = initializeChat;
@@ -310,6 +366,7 @@
                     body: JSON.stringify({
                         message: messageText,
                         session_id: currentSessionId,
+                        user_id: 1,
                         country: 'Germany'
                     })
                 });

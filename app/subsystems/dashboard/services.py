@@ -6,13 +6,19 @@ real scans, mock scans are generated with the same material -> bin rules
 """
 
 import json
+import logging
 import random
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from app.extensions import db
 from app.models.dashboard import DashboardSetting, DashboardSnapshot, _scan_date
 from app.models.scan import Scan
+from app.subsystems.dashboard.errors import DataSourceError, InvalidFilterError
+
+logger = logging.getLogger(__name__)
 
 RULES_PATH = Path(__file__).resolve().parent.parent / "classification" / "rules.json"
 
@@ -35,9 +41,13 @@ MOCK_ITEMS = [
 
 def load_bin_rules(path=RULES_PATH):
     """The classification subsystem's rules: material -> bin, and the Pfand bin."""
-    with open(path, encoding="utf-8") as f:
-        rules = json.load(f)
-    return rules["material_to_bin"], rules["pfand"]["bin"], rules["unknown_label"]
+    try:
+        with open(path, encoding="utf-8") as f:
+            rules = json.load(f)
+        return rules["material_to_bin"], rules["pfand"]["bin"], rules["unknown_label"]
+    except (OSError, json.JSONDecodeError, KeyError) as error:
+        # Chain the original error so the log shows the real cause.
+        raise DataSourceError("The bin rules could not be loaded.") from error
 
 
 def generate_mock_scans(count=250, days=14, seed=None):
@@ -60,21 +70,134 @@ def generate_mock_scans(count=250, days=14, seed=None):
     return scans
 
 
+def parse_days(value, maximum=DashboardSetting.MAX_DAYS):
+    """Validate an optional ?days= filter. Returns None when it isn't given."""
+    if value is None or value == "":
+        return None
+    try:
+        days = int(value)
+    except (TypeError, ValueError) as error:
+        raise InvalidFilterError("days must be a whole number.", field="days") from error
+    if not 1 <= days <= maximum:
+        raise InvalidFilterError(f"days must be between 1 and {maximum}.", field="days")
+    return days
+
+
 def load_live_scans(days=14):
-    """Real scans from the classification subsystem, from the last `days` days."""
+    """Real scans from the classification subsystem, from the last `days` days.
+
+    Rows with an unreadable timestamp are skipped (and logged) instead of
+    breaking the whole dashboard.
+    """
     first_day = date.today() - timedelta(days=days - 1)
-    return [s.to_dict() for s in Scan.query.all() if _scan_date(s.timestamp) >= first_day]
+    try:
+        rows = Scan.query.all()
+    except SQLAlchemyError as error:
+        raise DataSourceError("The classification results could not be read.") from error
+
+    scans, skipped = [], 0
+    for row in rows:
+        try:
+            day = _scan_date(row.timestamp)
+        except (TypeError, ValueError):
+            skipped += 1
+            continue
+        else:
+            if day >= first_day:
+                scans.append(row.to_dict())
+    if skipped:
+        logger.warning("Skipped %d scan(s) with an invalid timestamp.", skipped)
+    return scans
 
 
-def build_snapshot(save=True):
-    """Calculate the current statistics and (by default) store them in the database."""
+def build_snapshot(save=True, days=None):
+    """Calculate the current statistics and (by default) store them in the database.
+
+    `days` overrides the saved time range for this one request (from ?days=).
+    """
     setting = DashboardSetting.get_or_create()
-    days = setting.get_time_range_days()
+    days = days or setting.get_time_range_days()
     if setting.get_use_mock_data():
         snapshot = DashboardSnapshot.from_scans(generate_mock_scans(days=days), "mock")
     else:
         snapshot = DashboardSnapshot.from_scans(load_live_scans(days), "live")
     if save:
-        db.session.add(snapshot)
-        db.session.commit()
+        try:
+            db.session.add(snapshot)
+            db.session.commit()
+        except SQLAlchemyError as error:
+            db.session.rollback()
+            raise DataSourceError("The snapshot could not be saved.") from error
+        finally:
+            logger.debug("Snapshot save attempted (source=%s).", snapshot.get_source())
     return snapshot
+
+
+
+# --- Data output (Home Assignment 3): reading and filtering MySQL rows ---------
+
+SAMPLE_HASH = "dashboard-sample-data"  # marks sample rows so they can be removed again
+
+
+def query_scans(material=None, bin_type=None, days=None, limit=100):
+    """Rows from the scans table, newest first, filtered by the selected fields."""
+    try:
+        query = Scan.query
+        if material:
+            query = query.filter(Scan.material == material)
+        if bin_type:
+            query = query.filter(Scan.bin_type == bin_type)
+        if days:
+            cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat(timespec="seconds")
+            query = query.filter(Scan.timestamp >= cutoff)  # ISO timestamps sort as text
+        return query.order_by(Scan.timestamp.desc()).limit(limit).all()
+    except SQLAlchemyError as error:
+        raise DataSourceError("The classification results could not be read.") from error
+
+
+def count_scans():
+    try:
+        return Scan.query.count()
+    except SQLAlchemyError as error:
+        raise DataSourceError("The classification results could not be read.") from error
+
+
+def filter_options():
+    """The distinct materials and bins in the scans table, for the filter dropdowns."""
+    try:
+        materials = [row[0] for row in db.session.query(Scan.material).distinct().order_by(Scan.material)]
+        bins = [row[0] for row in db.session.query(Scan.bin_type).distinct().order_by(Scan.bin_type)]
+    except SQLAlchemyError as error:
+        raise DataSourceError("The filter options could not be loaded.") from error
+    return materials, bins
+
+
+def recent_snapshots(limit=10):
+    """The latest saved dashboard snapshots, newest first."""
+    try:
+        return DashboardSnapshot.query.order_by(DashboardSnapshot.id.desc()).limit(limit).all()
+    except SQLAlchemyError as error:
+        raise DataSourceError("The saved snapshots could not be read.") from error
+
+
+def add_sample_scans(count=60, seed=None):
+    """Insert sample rows into the scans table so the data page has something to show."""
+    try:
+        for scan in generate_mock_scans(count=count, days=14, seed=seed):
+            db.session.add(Scan(user_id=None, image_hash=SAMPLE_HASH, **scan))
+        db.session.commit()
+    except SQLAlchemyError as error:
+        db.session.rollback()
+        raise DataSourceError("The sample scans could not be saved.") from error
+    return count
+
+
+def remove_sample_scans():
+    """Delete only the rows added by add_sample_scans(); real scans are untouched."""
+    try:
+        removed = Scan.query.filter_by(image_hash=SAMPLE_HASH).delete()
+        db.session.commit()
+    except SQLAlchemyError as error:
+        db.session.rollback()
+        raise DataSourceError("The sample scans could not be removed.") from error
+    return removed

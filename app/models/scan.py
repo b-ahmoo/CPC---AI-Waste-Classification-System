@@ -13,6 +13,7 @@ class Scan(db.Model):
     material = db.Column(db.String(50), nullable=False)
     bin_type = db.Column(db.String(50), nullable=False)
     is_pfand = db.Column(db.Boolean, nullable=False, default=False)
+    routing_code = db.Column(db.String(10), nullable=False, default="")  # from the stream pipeline
 
     def to_dict(self):
         return {
@@ -21,6 +22,7 @@ class Scan(db.Model):
             "material": self.material,
             "bin_type": self.bin_type,
             "is_pfand": self.is_pfand,
+            "routing_code": self.routing_code,
         }
 
 def save_results(results, image_hash, user_id=None):
@@ -34,6 +36,7 @@ def save_results(results, image_hash, user_id=None):
             material=r["material"],
             bin_type=r["bin_type"],
             is_pfand=bool(r["is_pfand"]),
+            routing_code=r.get("routing_code", ""),
         ))
     db.session.commit()
 
