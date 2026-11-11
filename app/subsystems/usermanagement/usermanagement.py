@@ -1,10 +1,17 @@
-
 from typing import List, Optional
-from flask import Blueprint, render_template, request, redirect, url_for
+from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for
 from app.models.usermanagement_models import Country, User
-from app.subsystems.usermanagement.exceptions import UserNotFoundError, DuplicateEmailError, InactiveUserError
 
-user_bp = Blueprint('usermanagement', __name__, template_folder='templates')
+user_bp = Blueprint('user_management', __name__, template_folder='templates')
+
+class UserNotFoundError(Exception):
+    pass
+
+class DuplicateEmailError(Exception):
+    pass
+
+class InactiveUserError(Exception):
+    pass
 
 class AccountService:
     def __init__(self):
@@ -51,22 +58,37 @@ class AccountService:
 class WasteIntegration:
     @staticmethod
     def get_user_waste_regulations(user: User) -> dict:
-        country_code = user.country.code
+        country_code = user.country.code if user.country else "DE"
+        country_name = user.country.name if user.country else "Germany"
         return {
             "user": user.username,
-            "applicable_country": user.country.name,
+            "applicable_country": country_name,
             "local_disposal_guidelines": f"Standard sorting rules applied for region {country_code}"
         }
 
 account_service = AccountService()
 default_country = Country(country_id="c1", name="Germany", code="DE")
-account_service.create_account(user_id="u1", username="Max", email="max@uni.edu", country=default_country)
+try:
+    account_service.create_account(user_id="u1", username="Max", email="max@uni.edu", country=default_country)
+except Exception:
+    pass
 
 @user_bp.route('/user/profile/<user_id>')
 def user_profile(user_id):
-    """Web page route showing user profile and their connected waste rules."""
     user = account_service.find_user_by_id(user_id)
     if not user:
         return "User not found", 404
     integration_data = WasteIntegration.get_user_waste_regulations(user)
-    return render_template('user_profile.html', user=user.to_dict(), rules=integration_data)
+    return render_template('usermanagement/user_profile.html', user=user.to_dict(), rules=integration_data)
+
+@user_bp.route('/login/<user_id>', methods=['GET', 'POST'])
+def login(user_id):
+    """Writes user_id and country_code to session to satisfy cross-subsystem requirements."""
+    user = account_service.find_user_by_id(user_id)
+    if not user:
+        return "User not found", 404
+    
+    session['user_id'] = user.user_id
+    session['country_code'] = user.country.code if user.country else 'DE'
+    
+    return redirect(url_for('user_management.user_profile', user_id=user.user_id))

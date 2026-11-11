@@ -15,11 +15,14 @@ def create_app(config_class=Config):
     from app.subsystems.classification.routes import classification_bp
     from app.subsystems.chatbot.routes import chatbot_bp
     from app.subsystems.dashboard.routes import dashboard_bp
+    from app.subsystems.usermanagement.usermanagement import user_bp
 
     #  app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(classification_bp, url_prefix='/classify')
     app.register_blueprint(chatbot_bp, url_prefix='/chat')
     app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
+    app.register_blueprint(user_bp, url_prefix='/usermanagement')
+    
 
     # Create database tables that don't exist yet
     with app.app_context():

@@ -1,33 +1,36 @@
-import os
-from flask import Flask, jsonify
+from flask import Flask
+from app.config import Config
+from app.extensions import db  # shared SQLAlchemy database for all subsystems
 
-def create_app(test_config=None):
-    app = Flask(__name__, instance_relative_config=True)
+def create_app(config_class=Config):
+    app = Flask(__name__, template_folder="../templates")
+    app.config.from_object(config_class)
 
-    app.config.from_mapping(
-        SECRET_KEY=os.environ.get('SECRET_KEY', 'dev_key'),
-    )
+    # Initialize extensions
+    db.init_app(app)
 
-    if test_config is None:
-        app.config.from_pyfile('config.py', silent=True)
-    else:
-        app.config.from_mapping(test_config)
+    # Register Blueprints for each Subsystem
+    # from app.subsystems.auth.routes import auth_bp
+    from app.subsystems.classification.routes import classification_bp
+    from app.subsystems.chatbot.routes import chatbot_bp
+    from app.subsystems.dashboard.routes import dashboard_bp
+    from app.subsystems.usermanagement.usermanagement import user_bp
+
+    #  app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(classification_bp, url_prefix='/classify')
+    app.register_blueprint(chatbot_bp, url_prefix='/chat')
+    app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
+    app.register_blueprint(user_bp, url_prefix='/usermanagement')
+    
+
+    # Create database tables that don't exist yet
+    with app.app_context():
+        from app import models  # noqa: F401  (registers the dummy_items table)
+        
+        db.create_all()
 
     @app.route('/')
     def index():
-        return jsonify({
-            "service": "AI Waste Assistant MVP",
-            "status": "healthy"
-        })
-
-    # Register Subsystem Blueprints
-    from app.subsystems.chatbot.chatbot import chatbot_bp
-    app.register_blueprint(chatbot_bp, url_prefix='/chat')
-
-    from app.subsystems.dashboard.dashboard import dashboard_bp
-    app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
-
-    from app.subsystems.usermanagement.usermanagement import user_bp
-    app.register_blueprint(user_bp, url_prefix='/usermanagement')
+        return {"status": "healthy", "service": "AI Waste Assistant MVP"}
 
     return app
