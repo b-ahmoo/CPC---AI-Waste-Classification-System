@@ -119,7 +119,8 @@ def get_chat_history(session_id):
             message_list = [
                 {
                     "sender": msg.sender, 
-                    "message": msg.message
+                    "message": msg.message,
+                    "display": msg.display_format()
                 } for msg in messages
             ]
             
