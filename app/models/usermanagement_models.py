@@ -1,53 +1,62 @@
-"""
-Subsystem 1: SQLAlchemy Models (Country & User)
-"""
-
-from app.extensions import db
-
+from app import db
 
 class Country(db.Model):
-    """Represents geographical location metadata table for a user."""
     __tablename__ = 'countries'
-
-    country_id = db.Column(db.String(50), primary_key=True)
+    country_id = db.Column(db.String(36), primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    code = db.Column(db.String(10), nullable=False)
+    code = db.Column(db.String(10), nullable=False, unique=True)
+    rules_file = db.Column(db.String(255), nullable=True)
 
-    def get_details(self) -> dict:
-        return {
-            "country_id": self.country_id,
-            "name": self.name,
-            "code": self.code
-        }
+    def get_rules(self):
+        return f"Standard sorting rules applied for region {self.code}"
 
+class RecyclingRule(db.Model):
+    __tablename__ = 'recycling_rules'
+    rule_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    material = db.Column(db.String(100), nullable=False)
+    bin_type = db.Column(db.String(100), nullable=False)
+
+    def get_rule_id(self):
+        return self.rule_id
+
+    def get_material(self):
+        return self.material
+
+    def get_bin_type(self):
+        return self.bin_type
 
 class User(db.Model):
-    """Represents the system users table."""
     __tablename__ = 'users'
-
-    user_id = db.Column(db.String(50), primary_key=True)
+    user_id = db.Column(db.String(36), primary_key=True)
     username = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    country_id = db.Column(db.String(50), db.ForeignKey('countries.country_id'), nullable=False)
+    password_hash = db.Column(db.String(255), nullable=True)
+    selected_country_id = db.Column(db.String(36), db.ForeignKey('countries.country_id'), nullable=True)
     is_active = db.Column(db.Boolean, default=True)
 
-    # Relationship to Country
     country = db.relationship('Country', backref=db.backref('users', lazy=True))
 
-    def update_profile(self, username=None, country_id=None):
-        if username:
-            self.username = username
-        if country_id:
-            self.country_id = country_id
+    def register(self):
+        db.session.add(self)
+        db.session.commit()
+
+    def login(self):
+        return self.is_active
+
+    def get_user_name(self):
+        return self.username
+
+    def get_country(self):
+        return self.country.name if self.country else "Germany"
 
     def deactivate_account(self):
         self.is_active = False
 
-    def to_dict(self) -> dict:
+    def to_dict(self):
         return {
             "user_id": self.user_id,
             "username": self.username,
             "email": self.email,
-            "country": self.country.get_details() if self.country else None,
+            "country": self.get_country(),
             "is_active": self.is_active
         }
