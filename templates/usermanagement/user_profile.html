@@ -63,9 +63,11 @@
     <header>
         <h3>♻️ AI Waste Assistant</h3>
         <nav>
+            <a href="{{ url_for('usermanagement.user_profile') }}" class="active">User Management</a>
             <a href="{{ url_for('dashboard.data_page') }}">Dashboard</a>
             <a href="{{ url_for('chatbot_bp.chat_home') }}">Chat</a>
-            <a href="{{ url_for('usermanagement.user_profile') }}" class="active">User Management</a>
+            <a href="{{ url_for('classification.classify') }}">Classify</a>
+            
         </nav>
         <div style="font-size: 0.9rem; color: #cbd5e1;">Welcome, {{ user.username }} | <a href="{{ url_for('usermanagement.logout') }}" style="color: #fca5a5; text-decoration: none; font-weight: 500;">Logout</a></div>
     </header>
