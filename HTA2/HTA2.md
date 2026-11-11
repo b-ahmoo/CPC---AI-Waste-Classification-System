@@ -1,3 +1,13 @@
+# Home Task Assignment 2
+
+### Video
+Branch: [HomeworkAssignment2](https://github.com/b-ahmoo/CPC---AI-Waste-Classification-System/tree/HomeworkAssignment2)  
+
+
+Video: [Video HTA2](https://fhdoprod-my.sharepoint.com/:v:/r/personal/bhavisha_ah-moo001_stud_fh-dortmund_de/Documents/MDTSem1/CPC/Capstone/HomeTaskAssignment%20Videos/Group3_HomeTaskAssignment2.mp4?d=w5af3f756afcc456185820c3f00a66ad2&csf=1&web=1&nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJPbmVEcml2ZUZvckJ1c2luZXNzIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXciLCJyZWZlcnJhbFZpZXciOiJNeUZpbGVzTGlua0NvcHkifX0&e=xhRyno)
+
+---
+
 ## Waste Classification (Swarbhanu Bandyopadhaya)
 
 Optical sorters on the conveyor belt emit a continuous stream of image-recognition payloads. The classification pipeline discards low-confidence predictions, then turns the visual tags and bounding box metrics of everything that survives into a material category (PET, HDPE, Aluminium, ...) and a conveyor routing code (`R-01`, `R-03`, ...) that tells the sorter which lane to divert the item to.
@@ -80,12 +90,6 @@ classDiagram
     MaterialRoutingTransformer ..> RoutedItem : produces
     ConveyorStream ..> RoutedItem : yields
 ```
-
-### Video
-
-Video presentation: [Video HTA2](https://fhdoprod-my.sharepoint.com/:v:/r/personal/bhavisha_ah-moo001_stud_fh-dortmund_de/Documents/MDTSem1/CPC/Capstone/HomeTaskAssignment%20Videos/Group3_HomeTaskAssignment2.mp4?d=w5af3f756afcc456185820c3f00a66ad2&csf=1&web=1&nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJPbmVEcml2ZUZvckJ1c2luZXNzIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXciLCJyZWZlcnJhbFZpZXciOiJNeUZpbGVzTGlua0NvcHkifX0&e=xhRyno)
-
----
 
 ## Home Assignment 2: Statistical Dashboard Stream Processing (Srivaishnavi Jakku)
 
