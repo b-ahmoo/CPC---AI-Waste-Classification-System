@@ -1,17 +1,40 @@
 import unittest
+
+from app import create_app
+from app.config import Config
+from app.extensions import db
 import app.models.usermanagement_models
 import app.subsystems.usermanagement.usermanagement
 import app.subsystems.usermanagement.exceptions
 
 
 
+class TestConfig(Config):
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = "sqlite://"      # in-memory, nothing written to disk
+
+
 class TestUserManagementSubsystem(unittest.TestCase):
 
     def setUp(self):
-        """Initialize fresh service and sample objects before each test."""
+        """Fresh in-memory database and sample objects before each test."""
+        self.app = create_app(TestConfig)
+        self.ctx = self.app.app_context()
+        self.ctx.push()
+        self.req_ctx = self.app.test_request_context()   # login() writes to the session
+        self.req_ctx.push()
+
         self.service = app.subsystems.usermanagement.usermanagement.AccountService()
-        self.country = app.models.usermanagement_models.Country("c1", "Germany", "DE")
+        # create_app seeds the selectable countries; use the seeded Germany
+        self.country = app.models.usermanagement_models.Country.query.filter_by(
+            country_id="c1").first()
         self.user = self.service.create_account("u1", "Sejal", "sejal@uni.edu", self.country)
+
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+        self.req_ctx.pop()
+        self.ctx.pop()
 
     # 1. Country Model Initialization
     def test_country_initialization(self):
@@ -47,13 +70,15 @@ class TestUserManagementSubsystem(unittest.TestCase):
 
     # 7. Account Creation Service Success
     def test_create_account_success(self):
-        new_country = app.models.usermanagement_models.Country("c2", "France", "FR")
+        new_country = app.models.usermanagement_models.Country.query.filter_by(
+            country_id="c2").first()
         new_user = self.service.create_account("u2", "Alex", "alex@uni.edu", new_country)
         self.assertEqual(new_user.user_id, "u2")
 
     # 8. Duplicate Email Exception Handling
     def test_duplicate_email_exception(self):
-        new_country = app.models.usermanagement_models.Country("c2", "France", "FR")
+        new_country = app.models.usermanagement_models.Country.query.filter_by(
+            country_id="c2").first()
         with self.assertRaises(app.subsystems.usermanagement.exceptions.DuplicateEmailError):
             self.service.create_account("u2", "Duplicate", "sejal@uni.edu", new_country)
 

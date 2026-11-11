@@ -76,7 +76,7 @@ def classify():
                 image_url = f"data:{mime};base64,{base64.b64encode(image_bytes).decode()}"
 
     try:
-        recent = recent_scans()
+        recent = recent_scans(user_id=session.get("user_id"))
     except Exception as e:  # the page still loads if the database is down
         _error_handler.handle(e)
         recent = []

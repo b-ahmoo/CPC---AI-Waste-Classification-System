@@ -306,9 +306,11 @@
             <div>
                 <div class="sidebar-section-title">User Options</div>
                 <ul class="nav-list">
-                    <li><a href="#" class="nav-link active">👤 Profile Details</a></li>
-                    <li><a href="#" class="nav-link">♻️ Waste Integration</a></li>
-                    <li><a href="#" class="nav-link">⚙️ Settings</a></li>
+                    <li><a href="{{ url_for('usermanagement.profile') }}" class="nav-link active">👤 Profile Details</a></li>
+                    <li><a href="{{ url_for('classification.classify') }}" class="nav-link">♻️ Classify Waste</a></li>
+                    <li><a href="{{ url_for('dashboard.dashboard_page') }}" class="nav-link">📊 Statistics</a></li>
+                    <li><a href="{{ url_for('chatbot_bp.chat_home') }}" class="nav-link">💬 Assistant</a></li>
+                    <li><a href="{{ url_for('usermanagement.logout') }}" class="nav-link">🚪 Log out</a></li>
                 </ul>
             </div>
         </div>
@@ -350,20 +352,23 @@
 
             <div class="widgets-grid">
                 <div class="widget-card">
-                    <div class="widget-title">📊 Regional Sorting Efficiency</div>
+                    <div class="widget-title">📊 Your Sorting Activity</div>
                     <ul class="widget-list">
-                        <li>Status: Connected to local DB</li>
-                        <li>Last updated: Oct 2026</li>
-                        <li>Local disposal guidelines: standard sorting rules applied for region DE</li>
+                        <li>Items scanned: <strong>{{ scan_count }}</strong></li>
+                        <li>Applicable country: <strong>{{ rules.applicable_country }}</strong></li>
+                        <li>{{ rules.local_disposal_guidelines }}</li>
                     </ul>
                 </div>
 
                 <div class="widget-card">
-                    <div class="widget-title">🔔 Recent Local Activity</div>
+                    <div class="widget-title">🔔 Your Recent Scans</div>
                     <ul class="widget-list">
-                        <li>Update to Glass disposal rules</li>
-                        <li>New collection bin added to Region 456</li>
-                        <li>Recycling catalog index refreshed</li>
+                        {% for scan in recent_scans %}
+                            <li>{{ scan.item_name }} &rarr; {{ scan.bin_type }}</li>
+                        {% else %}
+                            <li>No scans yet &mdash;
+                                <a href="{{ url_for('classification.classify') }}">classify something</a>.</li>
+                        {% endfor %}
                     </ul>
                 </div>
             </div>

@@ -49,5 +49,9 @@ def find_by_hash(image_hash):
     rows = Scan.query.filter_by(image_hash=image_hash, timestamp=latest.timestamp).all()
     return [row.to_dict() for row in rows]
 
-def recent_scans(limit=10):
-    return [row.to_dict() for row in Scan.query.order_by(Scan.id.desc()).limit(limit).all()]
+def recent_scans(limit=10, user_id=None):
+    """The most recent scans. With a user_id, only that user's own scans."""
+    query = Scan.query
+    if user_id is not None:
+        query = query.filter_by(user_id=user_id)
+    return [row.to_dict() for row in query.order_by(Scan.id.desc()).limit(limit).all()]
