@@ -1,4 +1,13 @@
-## Home Assignment 4: Exception Handling and Unit Tests – Waste Classification
+# Home Assignment 4: Exception Handling and Unit Tests 
+
+## Video
+
+Video presentation: [Video HTA4](https://fhdoprod-my.sharepoint.com/:v:/g/personal/bhavisha_ah-moo001_stud_fh-dortmund_de/IQDA8MnjKNeJSrsNb25xY20kAXG93LjWu2JPMqxCra-rMcU?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJPbmVEcml2ZUZvckJ1c2luZXNzIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXciLCJyZWZlcnJhbFZpZXciOiJNeUZpbGVzTGlua0NvcHkifX0&email=galyna.tabunshchyk%40fh-dortmund.de&e=ObBhz9) <br>
+
+Presented by Sejal Dolas
+
+---
+# Home Assignment 4: Exception Handling and Unit Tests – Waste Classification
 
 **Student:** Swarbhanu Bandyopadhaya · **Student ID:** 7226982 · **Subsystem:** Waste Identification & Classification
 **GitHub project:** https://github.com/b-ahmoo/CPC---AI-Waste-Classification-System
@@ -90,12 +99,6 @@ classDiagram
     ClassificationErrorHandler ..> SQLAlchemyError : error, rolls back
 ```
 
-### Video
-
-Video presentation: [Video HTA4](https://fhdoprod-my.sharepoint.com/:v:/g/personal/bhavisha_ah-moo001_stud_fh-dortmund_de/IQDA8MnjKNeJSrsNb25xY20kAXG93LjWu2JPMqxCra-rMcU?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJPbmVEcml2ZUZvckJ1c2luZXNzIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXciLCJyZWZlcnJhbFZpZXciOiJNeUZpbGVzTGlua0NvcHkifX0&email=galyna.tabunshchyk%40fh-dortmund.de&e=ObBhz9)
-
----
-
 ## Home Assignment 4: Exception Handling and Unit Tests – Statistical Dashboard
 
 **Student:** Srivaishnavi Jakku · **Student ID:** 7225998 · **Subsystem:** Statistical Dashboard
@@ -136,3 +139,30 @@ The services use `try / except / else / finally` and exception chaining (`raise 
 
 Run all dashboard tests (77, covering Home Assignments 1–4):
 `docker compose exec web python -m pytest app/subsystems/dashboard/tests`
+
+
+# Chatbot Subsystem: Testing
+
+The following table documents the 15 tests (Unit, Regression, and Integration) implemented for the Chatbot subsystem to ensure high code coverage, database integrity, and stable API routes.
+
+| Test Name | Type | Description & Purpose |
+| :--- | :--- | :--- |
+| `test_01_waste_rule_constructor_and_getters` | Unit | Verifies that the `WasteRule` model initializes correctly using its explicit constructor and that its data can be accurately retrieved using encapsulation getters. |
+| `test_02_chat_session_constructor_and_setters` | Unit | Checks the `ChatSession` model's default state initialization (e.g., active status) and ensures that its setter methods can successfully mutate the object's state. |
+| `test_03_chat_message_database_save` | Unit | Ensures a `ChatMessage` entity can be successfully instantiated, linked to a parent `ChatSession`, saved to the database, and retrieved accurately. |
+| `test_04_service_find_rule_success` | Unit | Validates that the `ChatbotService.find_rule()` method successfully queries the database and returns the correct formatting for an existing waste rule. |
+| `test_05_service_find_rule_fallback` | Unit | Verifies the fallback mechanism in `ChatbotService.find_rule()` ensuring it returns a safe default message if a queried rule/country does not exist in the database. |
+| `test_06_history_route_success` | Regression | Simulates an API `GET` request to the `/chat/history/<id>` route, ensuring it successfully fetches and formats chronologically ordered messages for an existing session. |
+| `test_07_history_route_not_found` | Regression | Ensures the `/chat/history/<id>` route securely handles requests for non-existent sessions by returning a graceful `404` status code and error message. |
+| `test_08_session_reuse` | Regression | Validates that sending multiple sequential `POST` requests with the same `session_id` to `/chat/ask` successfully groups and appends the messages under the same session in the database. |
+| `test_09_empty_payload_validation` | Regression | Tests API security and validation by submitting a completely empty JSON payload to `/chat/ask`, ensuring the server catches it and returns a `400 Bad Request` instead of crashing. |
+| `test_10_default_country_fallback` | Regression | Verifies that if a user's request to `/chat/ask` omits the `country` payload field, the backend correctly injects a default fallback string (e.g., "Germany") and processes the request successfully. |
+| `test_11_service_concatenation_logic` | Integration | Proves the Retrieval-Augmented Generation (RAG) bundling logic works by inserting multiple rules for one country and verifying that `find_rule()` concatenates them into a single, comprehensive context string. |
+| `test_12_api_failure_graceful_handling` | Integration | Uses a mock/patch to simulate a catastrophic crash or timeout from the external Azure OpenAI API, verifying that the `send_reply()` `try/except` block catches the error and returns a safe fallback message. |
+| `test_13_chat_session_toggle_active` | Integration | Verifies database state mutations by creating a session, changing its active status to `False` using a setter, committing the change, and ensuring the database accurately reflects the new state. |
+| `test_14_database_integrity_missing_fields` | Integration | Tests SQLAlchemy schema constraints by attempting to save a `ChatMessage` with `None` in non-nullable fields, ensuring the database correctly throws an `IntegrityError` and rolls back the transaction. |
+| `test_15_timestamp_auto_generation` | Integration | Verifies that database-level defaults (like the `lambda: datetime.now()` function) automatically fire and populate timestamp fields during object insertion without requiring manual assignment in the code. |
+
+
+Run all chatbot tests :
+docker compose exec web python -m pytest --cov=app/subsystems/chatbot app/subsystems/chatbot/tests/tests.py
