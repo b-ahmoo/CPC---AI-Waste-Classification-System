@@ -319,7 +319,7 @@
                             msgDiv.className = 'message bot-message';
                         }
 
-                        msgDiv.textContent = msg.message;
+                        msgDiv.textContent = msg.display;
                         chatMessages.appendChild(msgDiv);
                     });
 
@@ -366,7 +366,7 @@
                     body: JSON.stringify({
                         message: messageText,
                         session_id: currentSessionId,
-                        user_id: 1,
+                        user_id: '1',
                         country: 'Germany'
                     })
                 });

@@ -41,7 +41,9 @@ def ask_chatbot():
         print(f"session = {session}")
         if not session:
             # If the session doesn't exist, create it and save it to the DB
-            new_session = ChatSession(session_id=session_id)
+            new_session = ChatSession()
+            new_session.set_session_id(session_id)
+            new_session.set_user_id(user_id)
             db.session.add(new_session)
             db.session.commit()
         
@@ -88,11 +90,18 @@ def get_sessions():
     try:
    
         # Query the database for all sessions, ordered from newest to oldest
-        sessions = ChatSession.query.order_by(ChatSession.session_id.desc()).all()
+        sessions = ChatSession.query.order_by(ChatSession._session_id.desc()).all()
+        print(f"sessions = {sessions} ")
         
         # Format into a JSON list
-        session_list = [{"session_id": s.session_id, "created_at": s.created_at.isoformat() if s.created_at else None} for s in sessions]
-        
+        session_list = [
+            {
+                "session_id": s.get_session_id(), 
+                "created_at": s.get_created_at().isoformat() if s.get_created_at() else None
+            } 
+            for s in sessions
+        ]
+        print(f"session list = {session_list} ")
         return jsonify({"status": "success", "sessions": session_list})
     
     except Exception as e:
@@ -100,7 +109,8 @@ def get_sessions():
             
         return jsonify({
                     "status": "error", 
-                    "message": "An error occurred when finding past sessions."
+                    "message": "An error occurred when finding past sessions " 
+                    
                 }), 500
 
 
@@ -119,7 +129,8 @@ def get_chat_history(session_id):
             message_list = [
                 {
                     "sender": msg.sender, 
-                    "message": msg.message
+                    "message": msg.message,
+                    "display": msg.display_format()
                 } for msg in messages
             ]
             

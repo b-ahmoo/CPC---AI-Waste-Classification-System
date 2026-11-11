@@ -1,6 +1,6 @@
 import os
 from openai import OpenAI
-from app.models import WasteRule, ChatMessage
+from app.models import WasteRule, ChatMessage, ChatSession
 from app.models.scan import Scan
 from app.extensions import db
 from sqlalchemy import func
@@ -8,8 +8,8 @@ from sqlalchemy import func
 class ChatbotService:
     #  Constructor and State Initialization
     def __init__(self, session_id: int, message: str):
-        self.session_id = session_id
-        self.message = message
+        self._session_id = session_id
+        self._message = message
         
         # Azure OpenAI client inside the constructor
         self.client = OpenAI(
@@ -19,8 +19,17 @@ class ChatbotService:
         self.deployment_name = os.environ.get("AZURE_OPENAI_DEPLOYMENT_NAME")
 
     # (Getter)
+    def get_session_id(self):
+        return self._session_id
+    
     def get_message(self):
-        return self.message
+        return self._message
+
+    def set_session_id(self, session_id: int):
+        self._session_id = session_id
+
+    def set_message(self, message: str):
+        self._message = message
 
     #  find rules from database for specific country
     def find_rule(self, user_country: str) -> str:
@@ -46,7 +55,7 @@ class ChatbotService:
 
 
     # assemble payload and send rule + prompt to open ai api to receive a response to display back to user
-    def send_reply(self, user_country: str, user_id: int, conversation_history: list = None) -> str:
+    def send_reply(self, user_country: str, user_id: str, conversation_history: list = None) -> str:
         """Replaces get_chatbot_response(), integrating DB rules and OpenAI."""
         if conversation_history is None:
             conversation_history = []
@@ -68,7 +77,7 @@ class ChatbotService:
         }
 
         # Assemble payload
-        messages_payload = [system_prompt] + conversation_history + [{"role": "user", "content": self.message}]
+        messages_payload = [system_prompt] + conversation_history + [{"role": "user", "content": self.get_message()}]
 
         try:
             #  Call Azure OpenAI
@@ -80,7 +89,7 @@ class ChatbotService:
             
             # Save the AI's reply to the database
             ai_message = ChatMessage(
-                session_id=self.session_id, 
+                session_id=self.get_session_id(), 
                 sender="assistant", 
                 message=ai_reply_text
             )
@@ -95,7 +104,7 @@ class ChatbotService:
 
     # for a specific user, filter Scans table to find and count all material types scanned
     # connected with subsystem 2 - classification
-    def get_user_stats(self, user_id: int)->str:
+    def get_user_stats(self, user_id: str)->str:
 
         try:
             scan_counts = Scan.query.with_entities(
