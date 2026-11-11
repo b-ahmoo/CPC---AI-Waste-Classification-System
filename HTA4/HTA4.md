@@ -93,3 +93,46 @@ classDiagram
 ### Video
 
 Video presentation: [Video HTA4](https://fhdoprod-my.sharepoint.com/:v:/g/personal/bhavisha_ah-moo001_stud_fh-dortmund_de/IQDA8MnjKNeJSrsNb25xY20kAXG93LjWu2JPMqxCra-rMcU?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJPbmVEcml2ZUZvckJ1c2luZXNzIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXciLCJyZWZlcnJhbFZpZXciOiJNeUZpbGVzTGlua0NvcHkifX0&email=galyna.tabunshchyk%40fh-dortmund.de&e=ObBhz9)
+
+---
+
+## Home Assignment 4: Exception Handling and Unit Tests – Statistical Dashboard
+
+**Student:** Srivaishnavi Jakku · **Student ID:** 7225998 · **Subsystem:** Statistical Dashboard
+**GitHub project:** https://github.com/b-ahmoo/CPC---AI-Waste-Classification-System
+
+### Error handling (`app/subsystems/dashboard/errors.py`)
+
+The dashboard raises its own exceptions, each with an HTTP status and a message that is safe to show to users:
+
+| Exception | Status | Raised when |
+|---|---|---|
+| `DashboardError` | 500 | Base class for every dashboard error |
+| `InvalidSettingError` | 400 | A setting is invalid, unknown, or the request body is not JSON |
+| `InvalidFilterError` | 400 | A filter such as `?days=` is not a whole number between 1 and 365 |
+| `DataSourceError` | 503 | The scans, the bin rules or the dashboard tables cannot be read or saved |
+
+**`DashboardErrorHandler`** is the subsystem's error-handling class. Every dashboard route uses it:
+
+* it maps any exception to a `DashboardError` (`ValueError` from the model setters → 400, `SQLAlchemyError` → 503, anything else → 500),
+* logs user mistakes as warnings and real bugs with the full traceback,
+* rolls back a failed database transaction (and logs it if the rollback itself fails),
+* returns a consistent JSON body, e.g. `{"error": "days must be a whole number.", "type": "InvalidFilterError", "field": "days"}`, so users never see a stack trace,
+* registers itself on the blueprint, so 404/405 errors under `/dashboard` are also returned as JSON,
+* on the HTML data page, errors are shown as a message on the page instead of JSON.
+
+The services use `try / except / else / finally` and exception chaining (`raise DataSourceError(...) from error`), skip scans with unreadable timestamps instead of failing, and settings changes are rolled back completely if any value is invalid.
+
+### Unit tests (`app/subsystems/dashboard/tests/test_error_handling.py`)
+
+22 tests, written with pytest and Flask's test client against an in-memory database (no MySQL or API key needed):
+
+| Area | Tests |
+|---|---|
+| Exception classes | hierarchy and status codes; default messages and `field` |
+| `DashboardErrorHandler` | `ValueError` → 400; database error → 503 with rollback; unexpected errors hidden from users but logged with traceback; user mistakes logged as warnings; failed rollback logged, not raised |
+| Services | valid `days` values; invalid `days` values; missing rules file → `DataSourceError` with the original cause; scans with broken timestamps skipped |
+| Routes | invalid `?days=` → 400; database down → 503; failed snapshot save → 503 and nothing saved; non-JSON settings body → 400; unknown setting → 400; invalid setting rolled back completely; unknown dashboard URL → JSON 404; wrong HTTP method → JSON 405; unexpected bug → friendly 500; data page with invalid filter → 400 with message; data page with database down → 503 with message |
+
+Run all dashboard tests (77, covering Home Assignments 1–4):
+`docker compose exec web python -m pytest app/subsystems/dashboard/tests`
