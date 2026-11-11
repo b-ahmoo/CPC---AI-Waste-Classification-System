@@ -6,7 +6,7 @@ class Scan(db.Model):
     __tablename__ = "scans"
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.String(50), nullable=True)  # matches users.user_id in the user management subsystem  # matches users.user_id in the user management subsystem
+    user_id = db.Column(db.String(50), nullable=True)  # matches users.user_id in the user management subsystem
     timestamp = db.Column(db.String(32), nullable=False)
     image_hash = db.Column(db.String(64), nullable=False, index=True)
     item_name = db.Column(db.String(200), nullable=False)
