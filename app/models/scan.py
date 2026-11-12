@@ -49,5 +49,20 @@ def find_by_hash(image_hash):
     rows = Scan.query.filter_by(image_hash=image_hash, timestamp=latest.timestamp).all()
     return [row.to_dict() for row in rows]
 
-def recent_scans(limit=10):
-    return [row.to_dict() for row in Scan.query.order_by(Scan.id.desc()).limit(limit).all()]
+def recent_scans(limit=10, user_id=None):
+    """The most recent scans. With a user_id, only that user's own scans."""
+    query = Scan.query
+    if user_id is not None:
+        query = query.filter_by(user_id=user_id)
+    return [row.to_dict() for row in query.order_by(Scan.id.desc()).limit(limit).all()]
+
+
+def scan_count(user_id):
+    """How many items this user has had classified. Used by the profile page."""
+    return Scan.query.filter_by(user_id=user_id).count()
+
+
+def user_has_scan(image_hash, user_id):
+    """True if this user already has this image in their own history."""
+    return (Scan.query.filter_by(image_hash=image_hash, user_id=user_id).first()
+            is not None)

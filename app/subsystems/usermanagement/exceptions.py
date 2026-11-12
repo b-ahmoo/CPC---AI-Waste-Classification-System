@@ -12,6 +12,11 @@ class DuplicateEmailError(UserManagementError):
     def __init__(self, message="Email address is already registered."):
         super().__init__(message)
 
+class DuplicateUsernameError(UserManagementError):
+    """Raised when attempting to register a username that is already taken."""
+    def __init__(self, message="That username is already taken."):
+        super().__init__(message)
+
 class InactiveUserError(UserManagementError):
     """Raised when an action is attempted on a deactivated account."""
     def __init__(self, message="User account is inactive."):

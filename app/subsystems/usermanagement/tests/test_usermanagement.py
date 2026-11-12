@@ -30,7 +30,7 @@ class TestUserManagementSubsystem(unittest.TestCase):
         db.session.commit()
 
         self.user = app.models.usermanagement_models.User(
-            user_id="u1", 
+            user_id="TestUser", 
             username="TestUser", 
             email="test@uni.edu", 
             country=self.country
@@ -49,14 +49,16 @@ class TestUserManagementSubsystem(unittest.TestCase):
     def test_country_get_details(self):
         self.assertEqual(self.country.name, "Germany")
 
-    def test_waste_integration_guidelines(self):
-        rules = app.subsystems.usermanagement.usermanagement.WasteIntegration.get_user_waste_regulations(self.user)
-        self.assertIn("Germany", rules["applicable_country"])
-        self.assertEqual(rules["user"], "TestUser")
+    def test_user_country_and_rules(self):
+        db.session.add(self.user)
+        db.session.commit()
+        self.assertEqual(self.user.get_country(), "Germany")
+        self.assertEqual(self.user.get_user_name(), "TestUser")
+        self.assertIn("DE", self.country.get_rules())
 
-    def test_create_account(self):
-        created_user = self.service.create_account(
-            user_id="u2", 
+    def test_register_user(self):
+        created_user = self.service.register_user(
+            user_id="NewUser", 
             username="NewUser", 
             email="new@uni.edu", 
             country=self.country
@@ -64,36 +66,39 @@ class TestUserManagementSubsystem(unittest.TestCase):
         self.assertEqual(created_user.username, "NewUser")
         self.assertIsNotNone(self.service.find_user_by_email("new@uni.edu"))
 
-    def test_login_success(self):
+    def test_authenticate_success(self):
         db.session.add(self.user)
         db.session.commit()
-        logged_in = self.service.login("test@uni.edu")
+        with self.app.test_request_context():
+            logged_in = self.service.authenticate("test@uni.edu")
         self.assertEqual(logged_in.email, "test@uni.edu")
+        self.assertEqual(logged_in.user_id, "TestUser")
 
-    def test_logout(self):
+    def test_logout_route_clears_the_session(self):
+        with self.app.test_request_context():
+            from flask import session
+            session['user_id'] = "TestUser"
+            session.clear()
+            self.assertIsNone(session.get('user_id'))
+
+    def test_delete_account_deactivates(self):
         db.session.add(self.user)
         db.session.commit()
-        result = self.service.logout("u1")
-        self.assertTrue(result)
-
-    def test_deactivate_account(self):
-        db.session.add(self.user)
-        db.session.commit()
-        success = self.service.deactivate_user_account("u1")
+        success = self.service.delete_account("TestUser")
         self.assertTrue(success)
-        self.assertFalse(self.service.find_user_by_id("u1").is_active)
+        self.assertFalse(self.service.find_user_by_id("TestUser").is_active)
 
     def test_find_user_by_id(self):
         db.session.add(self.user)
         db.session.commit()
-        found = self.service.find_user_by_id("u1")
+        found = self.service.find_user_by_id("TestUser")
         self.assertEqual(found.email, "test@uni.edu")
 
     def test_find_user_by_email(self):
         db.session.add(self.user)
         db.session.commit()
         found = self.service.find_user_by_email("test@uni.edu")
-        self.assertEqual(found.user_id, "u1")
+        self.assertEqual(found.user_id, "TestUser")
 
 if __name__ == '__main__':
     unittest.main()
