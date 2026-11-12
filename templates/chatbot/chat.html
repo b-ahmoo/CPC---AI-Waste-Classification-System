@@ -5,11 +5,15 @@
     <meta charset="UTF-8">
     <title>AI Recycling Chatbot</title>
     <style>
-        /* General Layout */
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
         .chat-layout {
             display: flex;
             height: 85vh;
-            max-width: 1200px;
+            width: 100%;
             margin: 20px auto;
             background-color: #f8f9fa;
             border-radius: 12px;
@@ -175,11 +179,60 @@
             border-radius: 4px;
             /* Slightly adjust radius for the flat left border */
         }
+
+        header {
+            background: #1e293b;
+            color: white;
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #334155;
+        }
+
+        header h3 {
+            margin: 0;
+            font-size: 1.15rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #f8fafc;
+        }
+
+        header nav a {
+            color: #94a3b8;
+            text-decoration: none;
+            margin-left: 28px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        header nav a:hover,
+        header nav a.active {
+            color: #38bdf8;
+        }
+
+        header nav a.active {
+            border-bottom: 2px solid #0d9488;
+            padding-bottom: 4px;
+        }
     </style>
 
 </head>
 
 <body>
+    <header>
+        <h3>♻️ AI Waste Assistant</h3>
+        <nav>
+            <a href="{{ url_for('usermanagement.user_profile') }}">User Management</a>
+            <a href="{{ url_for('dashboard.data_page') }}">Dashboard</a>
+            <a href="{{ url_for('chatbot_bp.chat_home') }}" class="active">Chat</a>
+            <a href="{{ url_for('classification.classify') }}">Classify</a>
+
+        </nav>
+        <div style="font-size: 0.9rem; color: #cbd5e1;">Welcome | <a href="{{ url_for('usermanagement.logout') }}"
+                style="color: #fca5a5; text-decoration: none; font-weight: 500;">Logout</a></div>
+    </header>
 
     <div class="chat-layout">
 
