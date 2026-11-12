@@ -134,6 +134,24 @@
                                 <div class="stat-desc">Efficiency</div>
                             </div>
                         </div>
+                        <div style="margin-top: 18px;">
+                            <strong style="font-size: 0.95rem; color: #334155;">Your recent scans</strong>
+                            {% if stats.recent %}
+                                <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+                                    {% for scan in stats.recent %}
+                                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 12px; border-radius: 8px; font-size: 0.9rem;">
+                                            <strong>{{ scan.item_name }}</strong> &middot; {{ scan.material }}
+                                            &rarr; {{ scan.bin_type }}
+                                            {% if scan.routing_code %}<span style="color: #64748b;"> ({{ scan.routing_code }})</span>{% endif %}
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p style="margin-top: 8px; color: #64748b; font-size: 0.9rem;">
+                                    No scans yet &mdash; <a href="{{ url_for('classification.classify') }}" style="color: #2d7d46;">classify your first item</a>.
+                                </p>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>

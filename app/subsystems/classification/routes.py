@@ -3,12 +3,14 @@
 import base64
 import hashlib
 import os
+from datetime import datetime, timezone
 
 from flask import Blueprint, render_template, request, session
 
 from app.subsystems.classification.classifier import (
     ClassificationError, FakeClient, WasteClassifier)
-from app.models.scan import find_by_hash, recent_scans, save_results
+from app.models.scan import (find_by_hash, recent_scans, save_results,
+                             user_has_scan)
 from app.subsystems.classification.errors import ClassificationErrorHandler
 
 classification_bp = Blueprint("classification", __name__)
@@ -39,7 +41,7 @@ def get_classifier():
         base_url = _setting("AZURE_OPENAI_ENDPOINT", "OPENAI_BASE_URL")
         model = _setting("AZURE_OPENAI_DEPLOYMENT_NAME", "OPENAI_MODEL", default="gpt-4o-mini")
         if api_key:
-            _classifier = WasteClassifier(api_key=api_key, base_url=base_url, model=model, timeout=10)
+            _classifier = WasteClassifier(api_key=api_key, base_url=base_url, model=model, timeout=40)
             _demo_mode = False
         else:
             _classifier = WasteClassifier(client=FakeClient(), model=model)
@@ -64,6 +66,14 @@ def classify():
                 results = find_by_hash(image_hash)
                 if results:
                     from_cache = True
+                    # The answer is reused so the AI is not called twice, but this
+                    # user still gets their own row, or the scan would be missing
+                    # from their history just because someone else uploaded it first.
+                    user_id = session.get("user_id")
+                    if not demo_mode and user_id and not user_has_scan(image_hash, user_id):
+                        now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+                        save_results([dict(r, timestamp=now) for r in results],
+                                     image_hash, user_id=user_id)
                 else:
                     results = [r.to_dict() for r in classifier.classify_image(image_bytes)]
                     if not demo_mode:  # don't store sample data
@@ -76,7 +86,7 @@ def classify():
                 image_url = f"data:{mime};base64,{base64.b64encode(image_bytes).decode()}"
 
     try:
-        recent = recent_scans()
+        recent = recent_scans(user_id=session.get("user_id"))
     except Exception as e:  # the page still loads if the database is down
         _error_handler.handle(e)
         recent = []

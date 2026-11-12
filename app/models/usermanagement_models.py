@@ -27,8 +27,9 @@ class RecyclingRule(db.Model):
 
 class User(db.Model):
     __tablename__ = 'users'
-    user_id = db.Column(db.String(36), primary_key=True)
-    username = db.Column(db.String(100), nullable=False)
+    # user_id is the username, and matches scans.user_id / chat_sessions.user_id (String(50)).
+    user_id = db.Column(db.String(50), primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=True)
     selected_country_id = db.Column(db.String(36), db.ForeignKey('countries.country_id'), nullable=True)
