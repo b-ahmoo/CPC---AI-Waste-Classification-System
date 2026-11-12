@@ -13,13 +13,13 @@
             background: #f4f7f5;
             color: #20332b;
         }
-        header {
+        .page-head {
             background: #174c3c;
             color: white;
             padding: 24px 6%;
         }
-        header h1 { margin: 0 0 8px; }
-        header p { margin: 0; color: #d8e9df; }
+        .page-head h1 { margin: 0 0 8px; }
+        .page-head p { margin: 0; color: #d8e9df; }
         main { padding: 28px 6%; }
         .stats {
             display: grid;
@@ -42,25 +42,44 @@
         }
         .chart-container { height: 280px; }
         .note { color: #617168; font-size: 13px; margin-top: 22px; }
-        nav { margin-top: 14px; }
-        nav a { color: #d8e9df; margin-right: 18px; text-decoration: none; font-weight: bold; }
-        nav a.active, nav a:hover { color: white; text-decoration: underline; }
-        nav .user { color: #d8e9df; font-size: 13px; float: right; }
-        nav .user a { margin-right: 0; }
+        .subnav { margin-top: 14px; }
+        .subnav a { color: #d8e9df; margin-right: 18px; text-decoration: none; font-weight: bold; }
+        .subnav a.active, .subnav a:hover { color: white; text-decoration: underline; }
+        .subnav .user { color: #d8e9df; font-size: 13px; float: right; }
+        .subnav .user a { margin-right: 0; }
         footer { padding: 0 6% 28px; color: #617168; font-size: 13px; }
         @media (max-width: 700px) {
             .stats, .charts { grid-template-columns: 1fr; }
         }
+        /* Shared navbar, same look as the Chat and Classify pages */
+        .site-nav { background: #1e293b; color: white; padding: 16px 32px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; font-family: Arial, sans-serif; }
+        .site-nav h3 { margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 8px; color: #f8fafc; }
+        .site-nav nav { margin: 0; }
+        .site-nav nav a { color: #94a3b8; text-decoration: none; margin: 0 0 0 28px; font-weight: 500; transition: color 0.2s; }
+        .site-nav nav a:hover, .site-nav nav a.active { color: #38bdf8; text-decoration: none; }
+        .site-nav nav a.active { border-bottom: 2px solid #0d9488; padding-bottom: 4px; }
+        .site-nav .welcome { font-size: 0.9rem; color: #cbd5e1; }
+        .site-nav .welcome a { color: #fca5a5; text-decoration: none; font-weight: 500; }
     </style>
 </head>
 <body>
-    <header>
+    <header class="site-nav">
+        <h3>♻️ AI Waste Assistant</h3>
+        <nav>
+            <a href="{{ url_for('usermanagement.user_profile') }}">User Management</a>
+            <a href="{{ url_for('dashboard.data_page') }}" class="active">Dashboard</a>
+            <a href="{{ url_for('chatbot_bp.chat_home') }}">Chat</a>
+            <a href="{{ url_for('classification.classify') }}">Classify</a>
+        </nav>
+        <div class="welcome">Welcome | <a href="{{ url_for('usermanagement.logout') }}">Logout</a></div>
+    </header>
+    <header class="page-head">
         <h1>Statistical Dashboard</h1>
         <p>AI Waste Classification System · Overview</p>
-        <nav>
+        <nav class="subnav">
             <a href="{{ url_for('dashboard.dashboard_page') }}" class="active">Overview</a>
             <a href="{{ url_for('dashboard.data_page') }}">Data</a>
-            <span class="user">Logged in as {{ current_user_id }} · <a href="{{ url_for('usermanagement.logout') }}">Log out</a></span>
+            <span class="user">Logged in as {{ current_user_id }}</span>
         </nav>
     </header>
 
