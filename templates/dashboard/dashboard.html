@@ -45,6 +45,8 @@
         nav { margin-top: 14px; }
         nav a { color: #d8e9df; margin-right: 18px; text-decoration: none; font-weight: bold; }
         nav a.active, nav a:hover { color: white; text-decoration: underline; }
+        nav .user { color: #d8e9df; font-size: 13px; float: right; }
+        nav .user a { margin-right: 0; }
         footer { padding: 0 6% 28px; color: #617168; font-size: 13px; }
         @media (max-width: 700px) {
             .stats, .charts { grid-template-columns: 1fr; }
@@ -58,6 +60,7 @@
         <nav>
             <a href="{{ url_for('dashboard.dashboard_page') }}" class="active">Overview</a>
             <a href="{{ url_for('dashboard.data_page') }}">Data</a>
+            <span class="user">Logged in as {{ current_user_id }} · <a href="{{ url_for('usermanagement.logout') }}">Log out</a></span>
         </nav>
     </header>
 
@@ -164,7 +167,7 @@
                 drawActivityChart(data.activity_chart);
                 setText("data-note", data.source === "mock"
                     ? "Showing mock data. Switch to live scans with POST /dashboard/api/settings {\"use_mock_data\": false}."
-                    : "Showing live data from the scans table.");
+                    : "Showing live data: your own scans from the scans table.");
             } catch (error) {
                 console.error("Failed to load dashboard data:", error);
                 setText("data-note", "Could not load the dashboard: " + error.message);

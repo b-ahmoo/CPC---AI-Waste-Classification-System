@@ -14,6 +14,9 @@ from app.subsystems.dashboard.services import (
     SAMPLE_HASH, add_sample_scans, filter_options, query_scans, recent_snapshots, remove_sample_scans)
 
 
+USER = "tester@example.com"  # every test client is logged in as this user
+
+
 class TestConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = "sqlite://"
@@ -30,7 +33,10 @@ def app(monkeypatch):
 
 @pytest.fixture
 def client(app):
-    return app.test_client()
+    client = app.test_client()
+    with client.session_transaction() as session:
+        session["user_id"] = USER  # what /user/login stores
+    return client
 
 
 def iso(days_ago):
@@ -46,27 +52,27 @@ def scans(app):
          "bin_type": "Papiertonne", "is_pfand": False},
         {"timestamp": iso(20), "item_name": "Yogurt cup", "material": "Kunststoff",
          "bin_type": "Gelbe Tonne", "is_pfand": False},
-    ], image_hash="real")
+    ], image_hash="real", user_id=USER)
 
 
 def test_query_scans_filters(scans):
-    assert len(query_scans()) == 3
-    assert {s.item_name for s in query_scans(material="Kunststoff")} == {"PET bottle", "Yogurt cup"}
-    assert [s.item_name for s in query_scans(bin_type="Papiertonne")] == ["Newspaper"]
-    assert len(query_scans(days=7)) == 2
-    assert query_scans()[0].item_name == "PET bottle"  # newest first
+    assert len(query_scans(USER)) == 3
+    assert {s.item_name for s in query_scans(USER, material="Kunststoff")} == {"PET bottle", "Yogurt cup"}
+    assert [s.item_name for s in query_scans(USER, bin_type="Papiertonne")] == ["Newspaper"]
+    assert len(query_scans(USER, days=7)) == 2
+    assert query_scans(USER)[0].item_name == "PET bottle"  # newest first
 
 
 def test_filter_options(scans):
-    materials, bins = filter_options()
+    materials, bins = filter_options(USER)
     assert materials == ["Kunststoff", "Papier"]
     assert bins == ["Gelbe Tonne", "Papiertonne", "Pfandautomat"]
 
 
 def test_sample_data_can_be_added_and_removed_without_touching_real_scans(scans):
-    assert add_sample_scans(count=10, seed=1) == 10
+    assert add_sample_scans(USER, count=10, seed=1) == 10
     assert Scan.query.filter_by(image_hash=SAMPLE_HASH).count() == 10
-    assert remove_sample_scans() == 10
+    assert remove_sample_scans(USER) == 10
     assert Scan.query.count() == 3  # the real scans are still there
 
 
@@ -90,7 +96,7 @@ def test_empty_data_page(client):
 
 def test_snapshots_appear_after_visiting_the_overview(client):
     client.get("/dashboard/api/stats")
-    assert len(recent_snapshots()) == 1
+    assert len(recent_snapshots(USER)) == 1
     assert "mock" in client.get("/dashboard/data").get_data(as_text=True)
 
 

@@ -16,6 +16,9 @@ from app.models.scan import save_results
 from app.subsystems.dashboard.services import build_snapshot, generate_mock_scans
 
 
+USER = "tester@example.com"  # every test client is logged in as this user
+
+
 class TestConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = "sqlite://"  # in-memory database
@@ -32,7 +35,10 @@ def app(monkeypatch):
 
 @pytest.fixture
 def client(app):
-    return app.test_client()
+    client = app.test_client()
+    with client.session_transaction() as session:
+        session["user_id"] = USER  # what /user/login stores
+    return client
 
 
 SCANS = [
@@ -149,9 +155,9 @@ def test_build_snapshot_uses_live_scans_when_mock_is_off(app):
     db.session.commit()
     today = date.today().isoformat() + "T12:00:00+00:00"
     save_results([{"timestamp": today, "item_name": "Glass jar", "material": "Glas",
-                   "bin_type": "Altglas", "is_pfand": False}], image_hash="abc")
+                   "bin_type": "Altglas", "is_pfand": False}], image_hash="abc", user_id=USER)
 
-    snapshot = build_snapshot()
+    snapshot = build_snapshot(user_id=USER)
     assert snapshot.get_source() == "live"
     assert snapshot.get_total_items() == 1
     assert DashboardSnapshot.query.count() == 1

@@ -59,6 +59,13 @@ class InvalidFilterError(DashboardError):
     default_message = "That filter value is not valid."
 
 
+class NotLoggedInError(DashboardError):
+    """The dashboard shows personal data, so the user has to be logged in."""
+
+    status_code = 401
+    default_message = "Please log in to see your dashboard."
+
+
 class DataSourceError(DashboardError):
     """The classification data or the dashboard tables could not be read or written."""
 
