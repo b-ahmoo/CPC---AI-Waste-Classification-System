@@ -5,6 +5,7 @@ from app.models.dummy import DummyItem
 from app.models.chat_message import ChatMessage
 from app.models.chat_sessions import ChatSession
 from app.models.scan import Scan
+from app.models.usermanagement_models import Country, User
 from app.subsystems.chatbot.chatbot_service import ChatbotService
 
 chatbot_bp = Blueprint('chatbot_bp', __name__)
@@ -26,20 +27,35 @@ def ask_chatbot():
     #Get the data from the user's interface (frontend)
     data = request.get_json()
     user_text = data.get('message')
-    user_id = data.get('user_id')
+    user_id = session.get("user_id")
+    # userdata = session.get()
+    # print(f"{userdata}"
+    print(f"user id from logged in user {user_id}")
     session_id = data.get('session_id')
-    user_country = data.get('country', 'Germany')
+    country_id = None
+
+    if user_id:
+    
+        current_user = User.query.get(user_id)
+    
+    if current_user:
+        
+        country_id = current_user.selected_country_id
+        country_record = Country.query.get(country_id)
+        user_country = country_record.name
+
+    print(f"country id from DB = {country_id} {user_country}", flush=True)
     user_material = data.get('material_type', 'General')
 
-  
+    
 
     if not data or not user_text or not session_id:
         return jsonify({"error": "Message and session_id are required", "status_code":400}), 400
 
     try:
-        session = ChatSession.query.get(session_id)
-        print(f"session = {session}")
-        if not session:
+        existing_session = ChatSession.query.get(session_id)
+        print(f"session = {existing_session}")
+        if not existing_session:
             # If the session doesn't exist, create it and save it to the DB
             new_session = ChatSession()
             new_session.set_session_id(session_id)
@@ -90,7 +106,7 @@ def get_sessions():
     try:
    
         # Query the database for all sessions, ordered from newest to oldest
-        sessions = ChatSession.query.order_by(ChatSession._session_id.desc()).all()
+        sessions = ChatSession.query.filter_by(_user_id=session.get("user_id")).order_by(ChatSession._session_id.desc()).all()
         print(f"sessions = {sessions} ")
         
         # Format into a JSON list
