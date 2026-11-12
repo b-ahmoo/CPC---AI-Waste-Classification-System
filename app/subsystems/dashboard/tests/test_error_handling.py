@@ -24,6 +24,9 @@ from app.subsystems.dashboard.errors import (
 DB_DOWN = OperationalError("SELECT ...", {}, Exception("database is down"))
 
 
+USER = "tester@example.com"  # every test client is logged in as this user
+
+
 class TestConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = "sqlite://"  # in-memory database
@@ -40,7 +43,10 @@ def app(monkeypatch):
 
 @pytest.fixture
 def client(app):
-    return app.test_client()
+    client = app.test_client()
+    with client.session_transaction() as session:
+        session["user_id"] = USER  # what /user/login stores
+    return client
 
 
 # --- The exception classes ------------------------------------------------------
@@ -127,13 +133,13 @@ def test_missing_rules_file_raises_data_source_error_with_cause(tmp_path):
 
 def test_scans_with_broken_timestamps_are_skipped(app, caplog):
     db.session.add_all([
-        Scan(timestamp="not-a-date", image_hash="t1", item_name="?", material="Glas", bin_type="Altglas", is_pfand=False),
-        Scan(timestamp=services.datetime.now(services.timezone.utc).isoformat(), image_hash="t2", item_name="Jar",
+        Scan(user_id=USER, timestamp="not-a-date", image_hash="t1", item_name="?", material="Glas", bin_type="Altglas", is_pfand=False),
+        Scan(user_id=USER, timestamp=services.datetime.now(services.timezone.utc).isoformat(), image_hash="t2", item_name="Jar",
              material="Glas", bin_type="Altglas", is_pfand=False),
     ])
     db.session.commit()
     with caplog.at_level(logging.WARNING):
-        scans = services.load_live_scans(days=7)
+        scans = services.load_live_scans(days=7, user_id=USER)
     assert [s["item_name"] for s in scans] == ["Jar"]
     assert "Skipped 1 scan" in caplog.text
 

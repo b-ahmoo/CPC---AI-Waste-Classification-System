@@ -13,6 +13,8 @@
         nav { margin-top: 14px; }
         nav a { color: #d8e9df; margin-right: 18px; text-decoration: none; font-weight: bold; }
         nav a.active, nav a:hover { color: white; text-decoration: underline; }
+        nav .user { color: #d8e9df; font-size: 13px; float: right; }
+        nav .user a { margin-right: 0; }
         main { padding: 28px 6%; }
         .card { background: white; border-radius: 12px; padding: 22px; box-shadow: 0 3px 12px #173b2b10; margin-bottom: 22px; }
         .card h2 { margin: 0 0 6px; font-size: 18px; }
@@ -41,6 +43,7 @@
         <nav>
             <a href="{{ url_for('dashboard.dashboard_page') }}">Overview</a>
             <a href="{{ url_for('dashboard.data_page') }}" class="active">Data</a>
+            <span class="user">Logged in as {{ current_user_id }} · <a href="{{ url_for('usermanagement.logout') }}">Log out</a></span>
         </nav>
     </header>
 
@@ -53,7 +56,7 @@
         {% endfor %}
 
         <section class="card">
-            <h2>Classified items (scans table)</h2>
+            <h2>Your classified items (scans table)</h2>
             <p class="muted">Showing {{ scans|length }} of {{ total_scans }} rows, newest first (max. 100).</p>
 
             <form class="filters" method="get" action="{{ url_for('dashboard.data_page') }}">
@@ -110,7 +113,7 @@
         </section>
 
         <section class="card">
-            <h2>Saved dashboard snapshots (dashboard_snapshots table)</h2>
+            <h2>Your saved dashboard snapshots (dashboard_snapshots table)</h2>
             <p class="muted">Each visit to the Overview page stores one snapshot. Latest 10 shown.</p>
             {% if snapshots %}
             <div class="table-wrap">
@@ -141,7 +144,7 @@
 
         <section class="card">
             <h2>Sample data</h2>
-            <p class="muted">Adds 60 example scans to the scans table (marked so they can be removed again). Real scans are never removed.</p>
+            <p class="muted">Adds 60 example scans to your account in the scans table (marked so they can be removed again). Real scans and other users' scans are never removed.</p>
             <div class="actions">
                 <form method="post" action="{{ url_for('dashboard.add_sample') }}">
                     <button type="submit">Add sample scans</button>

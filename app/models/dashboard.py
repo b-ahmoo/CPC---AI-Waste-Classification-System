@@ -117,6 +117,8 @@ class DashboardSnapshot(db.Model):
     _total_items = db.Column("total_items", db.Integer, nullable=False, default=0)
     _pfand_items = db.Column("pfand_items", db.Integer, nullable=False, default=0)
     _material_count = db.Column("material_count", db.Integer, nullable=False, default=0)
+    # Whose statistics these are: users.user_id from the user management subsystem
+    _user_id = db.Column("user_id", db.String(50), nullable=True, index=True)
 
     bin_statistics = db.relationship("BinStatistic", back_populates="snapshot",
                                      cascade="all, delete-orphan", order_by="BinStatistic.id")
@@ -125,20 +127,22 @@ class DashboardSnapshot(db.Model):
 
     SOURCES = ("mock", "live")
 
-    def __init__(self, source, total_items=0, pfand_items=0, material_count=0):
+    def __init__(self, source, total_items=0, pfand_items=0, material_count=0, user_id=None):
         super().__init__()
         self._created_at = _now()
         self.set_source(source)
+        self.set_user_id(user_id)
         self.set_total_items(total_items)
         self.set_pfand_items(pfand_items)
         self.set_material_count(material_count)
 
     # Initialization method
     @classmethod
-    def from_scans(cls, scans, source):
+    def from_scans(cls, scans, source, user_id=None):
         """Calculate all statistics from a list of scans (dicts shaped like Scan.to_dict())."""
         snapshot = cls(
             source=source,
+            user_id=user_id,
             total_items=len(scans),
             pfand_items=sum(1 for s in scans if s.get("is_pfand")),
             material_count=len({s["material"] for s in scans}),
@@ -198,6 +202,12 @@ class DashboardSnapshot(db.Model):
         if source not in self.SOURCES:
             raise ValueError(f"source must be one of {self.SOURCES}")
         self._source = source
+
+    def get_user_id(self):
+        return self._user_id
+
+    def set_user_id(self, user_id):
+        self._user_id = None if user_id is None else _non_empty_text(user_id, "user_id", 50)
 
     def get_total_items(self):
         return self._total_items
