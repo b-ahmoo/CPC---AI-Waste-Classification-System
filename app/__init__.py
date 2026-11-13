@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, redirect
 from app.config import Config
 from app.extensions import db  # shared SQLAlchemy database for all subsystems
 
@@ -70,6 +70,10 @@ def create_app(config_class=Config):
 
     @app.route('/')
     def index():
+        return redirect('/user/signup')
+
+    @app.route('/health')
+    def health():
         return {"status": "healthy", "service": "AI Waste Assistant MVP"}
 
     return app
