@@ -5,6 +5,7 @@ An AI-driven application designed to assist users with waste classification and 
 # MVP Features Documentation: AI Waste Classification System
 
 This document outlines the Minimum Viable Product (MVP) features and database requirements for the four core subsystems of the AI Waste Classification project.
+Video presentation[Video](https://fhdoprod-my.sharepoint.com/:v:/g/personal/bhavisha_ah-moo001_stud_fh-dortmund_de/IQCw4QMQDkkTRJKp8Hde1psBAecwh9GS1B2Y8PEygrLbsyo)
 
 ---
 # Team members and assigned subsystems
