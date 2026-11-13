@@ -1,12 +1,33 @@
 import pytest
 import sqlalchemy
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from app.models import ChatSession, ChatMessage, WasteRule
+from app.models.usermanagement_models import User
 from app.subsystems.chatbot.chatbot_service import ChatbotService
 from app.extensions import db
 
-# Unit Tests
+# Unit Tests. to run : docker compose exec web python -m pytest --cov=app/subsystems/chatbot app/subsystems/chatbot/tests/tests.py::test_10_default_country_fallback
+@pytest.fixture(autouse=True)
+def mock_azure_openai():
+    """
+    Automatically mocks the OpenAI client across ALL tests so real API credits 
+    are never used, while still allowing ChatbotService to save replies to the DB.
+    """
+    with patch("app.subsystems.chatbot.chatbot_service.OpenAI") as mock_openai_class:
+        #  fake client instance
+        mock_client_instance = MagicMock()
+        
+        #  fake response object with .output_text
+        mock_response = MagicMock()
+        mock_response.output_text = "Mocked AI Reply: Follow local municipal guidelines."
+        
+        #  return the fake response
+        mock_client_instance.responses.create.return_value = mock_response
+        mock_openai_class.return_value = mock_client_instance
+        
+        yield mock_client_instance
 
+    
 def test_01_waste_rule_constructor_and_getters(app):
     """UNIT TEST 1: Verifies WasteRule constructor and getters work."""
     #checked
@@ -28,8 +49,8 @@ def test_02_chat_session_constructor_and_setters(app):
     #checked
     with app.app_context():
         # Test constructor defaults
-        session = ChatSession(user_id=99)
-        assert session.get_user_id() == 99
+        session = ChatSession(user_id="testuser@user.com")
+        assert session.get_user_id() == "testuser@user.com"
         assert session.get_active() is True
         
         # Test the setter
@@ -41,17 +62,17 @@ def test_03_chat_message_database_save(app):
     #checked
     with app.app_context():
         # 1. Create and save a  session first
-        session = ChatSession(user_id=1)
+        session = ChatSession(user_id="testuser@email.com")
         db.session.add(session)
         db.session.commit()
         
         # 2. Create and save the message
-        msg = ChatMessage(session_id=session.session_id, sender="user", message="Hello")
+        msg = ChatMessage(session_id=session._session_id, sender="user", message="Hello")
         db.session.add(msg)
         db.session.commit()
         
         # 3. Retrieveand verify
-        saved_msg = ChatMessage.query.filter_by(session_id = session.session_id).first()
+        saved_msg = ChatMessage.query.filter_by(session_id = session._session_id).first()
         assert saved_msg.get_sender() == "user"
         assert saved_msg.get_message() == "Hello"
 
@@ -75,6 +96,9 @@ def test_05_service_find_rule_fallback(app):
     """UNIT TEST 5: Verifies ChatbotService returns fallback if rule doesn't exist."""
     #checked
     with app.app_context():
+        new_session = ChatSession(session_id=1, user_id="test1@email.com")
+        db.session.add(new_session)
+        db.session.commit()
         service = ChatbotService(session_id=1, message="Where does this go?")
         # Asking for a country/material not in the DB
         result = service.find_rule("Mars")
@@ -86,15 +110,16 @@ def test_06_history_route_success(client, app):
     """Regression Test 6: Fetching history for an existing session returns correct data."""
     #checked - change session id before testing
     with app.app_context():
+        new_id = 103
         # Setup: Create a session and messages manually
-        session = ChatSession(session_id=103)
-        msg1 = ChatMessage(session_id=103, sender="user", message="Hi")
-        msg2 = ChatMessage(session_id=103, sender="assistant", message="Hello")
-        db.session.add_all([session, msg1, msg2])
+        newsession = ChatSession(session_id=new_id, user_id="test2@email.com")
+        msg1 = ChatMessage(session_id=new_id, sender="user", message="Hi")
+        msg2 = ChatMessage(session_id=new_id, sender="assistant", message="Hello")
+        db.session.add_all([newsession, msg1, msg2])
         db.session.commit()
         
     # Action: Request the history
-    response = client.get('/chat/history/101')
+    response = client.get(f'/chat/history/{new_id}')
     
     # Verify: The route should return the messages
     assert response.status_code == 200
@@ -110,14 +135,19 @@ def test_07_history_route_not_found(client):
 
 def test_08_session_reuse(client, app):
     """Regression Test 8: Sending multiple messages to the same session appends to history."""
-    #checked - change session id
+    #checked 
     # First message creates the session dynamically
-    client.post('/chat/ask', json={"message": "Where do plastic pens go?", "session_id": 202, "user_id":1, "country": "Germany"})
+    new_id = 203
+    # Setup: Create a session and messages manually
+    newsession = ChatSession(session_id=new_id, user_id="test1@email.com")
+    db.session.add(newsession)
+    db.session.commit()
+    client.post('/chat/ask', json={"message": "Where do plastic pens go?", "session_id": new_id, "user_id":"test1@email.com", "country": "c1"})
     # Second message reuses the session
-    client.post('/chat/ask', json={"message": "Where do old metal cutlery go?", "session_id": 202,  "user_id":1, "country": "Germany"})
+    client.post('/chat/ask', json={"message": "Where do old metal cutlery go?", "session_id": new_id,  "user_id":"test1@email.com", "country": "c1"})
     
     with app.app_context():
-        messages = ChatMessage.query.filter_by(session_id=202, sender="user").all()
+        messages = ChatMessage.query.filter_by(session_id=new_id, sender="user").all()
         assert len(messages) == 2
         assert messages[0].get_message() == "Where do plastic pens go?"
         assert messages[1].get_message() == "Where do old metal cutlery go?"
@@ -132,16 +162,22 @@ def test_09_empty_payload_validation(client):
 def test_10_default_country_fallback(client, app):
     """Regression Test 10: Missing country in request defaults to Germany."""
     #checked
+    new_id = 403
+    # Setup: Create a session and messages manually
+    newsession = ChatSession(session_id=new_id, user_id="test1@email.com")
+    db.session.add(newsession)
+    db.session.commit()
     response = client.post('/chat/ask', json={
         "message": "Where does paper go?", 
-        "session_id": 303,
+        "session_id": new_id,
+        "user_id": "test1@email.com",
         "country":""
         
     })
     
     assert response.status_code == 200
     with app.app_context():
-        session = ChatSession.query.get(303)
+        session = ChatSession.query.get(new_id)
         assert session is not None
 
 def test_11_service_concatenation_logic(app):
@@ -166,11 +202,11 @@ def test_12_api_failure_graceful_handling(app):
     """Integration Test 7: Simulates an Azure OpenAI crash to ensure the service doesn't break the server."""
     #checked
     with app.app_context():
-        service = ChatbotService(session_id=1, message="Crash test")
+        service = ChatbotService(session_id=103, message="Crash test")
         
         #use 'patch' to temporarily mock the Azure client inside the service and force an error
         with patch.object(service.client.responses, 'create', side_effect=Exception("Azure Timeout")):
-            reply = service.send_reply(user_country="Germany", user_id=1)
+            reply = service.send_reply(user_country="Germany", user_id="test1@email.com")
             
             # The try/except block in send_reply should catch this and return a fallback string
             assert "Error connecting to Azure OpenAI" in reply
@@ -194,7 +230,7 @@ def test_14_database_integrity_missing_fields(app):
     #checked
     with app.app_context():
         # Missing 'sender' and 'message' which are nullable=False
-        invalid_msg = ChatMessage(session_id=505, sender=None, message=None)
+        invalid_msg = ChatMessage(session_id=103, sender=None, message=None)
         db.session.add(invalid_msg)
         
         try:
@@ -207,7 +243,7 @@ def test_14_database_integrity_missing_fields(app):
 def test_15_timestamp_auto_generation(app):
     """Integration Test 10: Verifies timestamps are generated automatically by the DB on insert."""
     with app.app_context():
-        session = ChatSession(session_id=606)
+        session = ChatSession(session_id=606, user_id="test1@email.com")
         msg = ChatMessage(session_id=606, sender="user", message="Time check")
         db.session.add_all([session, msg])
         db.session.commit()

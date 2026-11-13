@@ -27,27 +27,35 @@ def ask_chatbot():
     #Get the data from the user's interface (frontend)
     data = request.get_json()
     user_text = data.get('message')
-    user_id = session.get("user_id")
+    if data.get('user_id'):
+        user_id = data.get('user_id')
+    else:
+        user_id = session.get("user_id")
+
+    if data.get('country'):
+        user_country = data.get('country')
+    else:
+        user_country = "Germany"
     # userdata = session.get()
     # print(f"{userdata}"
     print(f"user id from logged in user {user_id}")
     session_id = data.get('session_id')
     country_id = None
-
+   
     if user_id:
     
         current_user = User.query.get(user_id)
+        if current_user:
+                
+            country_id = current_user.selected_country_id
+                
+            country_record = Country.query.get(country_id)
+            user_country = country_record.name
+           
     
-    if current_user:
-        
-        country_id = current_user.selected_country_id
-        country_record = Country.query.get(country_id)
-        user_country = country_record.name
-
-    print(f"country id from DB = {country_id} {user_country}", flush=True)
-    user_material = data.get('material_type', 'General')
-
-    
+    else:
+        return jsonify({"error": "Message and session_id are required", "status_code":400}), 400
+            
 
     if not data or not user_text or not session_id:
         return jsonify({"error": "Message and session_id are required", "status_code":400}), 400
