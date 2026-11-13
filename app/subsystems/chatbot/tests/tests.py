@@ -214,7 +214,7 @@ def test_12_api_failure_graceful_handling(app):
 def test_13_chat_session_toggle_active(app):
     """Integration Test 8: Verifies the session can be explicitly closed (active=False)."""
     with app.app_context():
-        session = ChatSession(session_id=404)
+        session = ChatSession(session_id=404, user_id="test2@email.com")
         db.session.add(session)
         db.session.commit()
         
